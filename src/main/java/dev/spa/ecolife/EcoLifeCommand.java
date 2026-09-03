@@ -135,6 +135,9 @@ final class EcoLifeCommand implements CommandExecutor, TabCompleter {
                 + " &7/ 最終受け取り: &f" + (record.lastClaim() == null ? "なし" : record.lastClaim())));
         sender.sendMessage(Text.prefixed("&7通算: &f" + record.totalClaims() + "&7回 / 皆勤した月: &f"
                 + record.perfectMonth() + "&7か月"));
+        sender.sendMessage(Text.prefixed("&7連続: &f" + record.streak() + "&7日 / 最長: &f"
+                + record.bestStreak() + "&7日 / 連続の起点: &f"
+                + (record.streakDay() == null ? "なし" : record.streakDay())));
     }
 
     private void reset(CommandSender sender, String name) {

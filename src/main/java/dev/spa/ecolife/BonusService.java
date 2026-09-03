@@ -102,6 +102,9 @@ final class BonusService {
             player.sendMessage(Text.prefixed("&e持ち物がいっぱいだったため、"
                     + result.dropped() + "種類を足元に落としました。拾ってください。"));
         }
+
+        sendHistory(player, plugin.store().get(player.getUniqueId()));
+
         if (result.perfect()) {
             player.sendMessage(Text.prefixed("&e今月は皆勤です。最後のマスまで到達しました。"));
             if (config.broadcastPerfectMonth()) {
@@ -146,6 +149,20 @@ final class BonusService {
         }
         player.sendMessage(Text.prefixed("&7このまま毎日入れば &f" + reachableMax(config, record)
                 + " &7マス目まで届きます。&8（休んだ日はマスが進みません）"));
+
+        sendHistory(player, record);
+    }
+
+    /**
+     * 「今月のマス」とは役割の違う、これまでの記録。
+     * マスは月が変わると1に戻るが、連続ログインは月をまたいでも続くため、行を分けて出す。
+     */
+    private void sendHistory(Player player, BonusRecord record) {
+        player.sendMessage(Text.prefixed("&7これまでの記録: 連続 &f" + record.streak()
+                + "&7日 / 累計 &f" + record.totalClaims() + "&7日"));
+        if (record.showsBestStreak()) {
+            player.sendMessage(Text.prefixed("&8最長は " + record.bestStreak() + "日でした。"));
+        }
     }
 
     /**

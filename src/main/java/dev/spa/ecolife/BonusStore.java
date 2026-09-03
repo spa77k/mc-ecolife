@@ -62,7 +62,10 @@ final class BonusStore {
                     section.getInt("month-claims", 0),
                     parseDate(section.getString("last-claim")),
                     section.getInt("total-claims", 0),
-                    section.getInt("perfect-months", 0)));
+                    section.getInt("perfect-months", 0),
+                    section.getInt("streak", 0),
+                    section.getInt("best-streak", 0),
+                    parseDate(section.getString("streak-day"))));
         }
     }
 
@@ -151,6 +154,10 @@ final class BonusStore {
                 yaml.set(path + ".last-claim", record.lastClaim() == null ? null : record.lastClaim().toString());
                 yaml.set(path + ".total-claims", record.totalClaims());
                 yaml.set(path + ".perfect-months", record.perfectMonth());
+                yaml.set(path + ".streak", record.streak());
+                yaml.set(path + ".best-streak", record.bestStreak());
+                yaml.set(path + ".streak-day",
+                        record.streakDay() == null ? null : record.streakDay().toString());
             }
             try {
                 File folder = file.getParentFile();
