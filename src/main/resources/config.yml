@@ -1,0 +1,166 @@
+# エコライフアシストの設定。
+#
+# ログインボーナスの考え方:
+#   報酬は「その月に受け取った回数」で決まる。1回目なら1マス目、2回目なら2マス目。
+#   休んでもマスは戻らないが進みもしないため、休んだ日数ぶんだけ月の後ろのマスに届かなくなる。
+#   月が変わると1マス目に戻る。良いものほど後ろのマスに置いてある。
+#
+# 中身の考え方:
+#   Jobs Reborn の1時間あたり収入上限が 1000+500*(合計レベル/100)（spsmc-infra/plugins/Jobs/generalConfig.yml）で、
+#   駆け出しのプレイヤーで時給はおよそ1000S。前半は「その日の作業がはかどる消耗品」を置き、
+#   採掘や取引で稼ぐ価値を下げないようにしている。ダイヤなど値の張るものは、
+#   毎日欠かさず入った人だけが届く後半（21日目以降）に限っている。
+
+# 1日の区切り。
+day:
+  # 判定に使うタイムゾーン。空にするとサーバーの既定（compose.yml の TZ=Asia/Tokyo）を使う。
+  timezone: "Asia/Tokyo"
+  # 何時に日付が変わる扱いにするか（0〜23）。月の切り替わりも同じ区切りで判定する。
+  # 深夜0時ではなく朝4時にしているのは、日付をまたいで遊んでいる人の受け取りが
+  # プレイ中に切り替わらないようにするため。
+  reset-hour: 4
+
+login-bonus:
+  enabled: true
+
+  # 参加してから自動で受け取るまでの待ち時間（ティック）。20ティックで1秒。
+  # 参加直後は first-join-guide などの案内が重なるため、少し遅らせて流れないようにする。
+  claim-delay-ticks: 60
+
+  # 月の日数ぶんすべて受け取った人が出たら、サーバー全体に知らせる。
+  broadcast-perfect-month: true
+
+# サーバー内の出来事（依頼板・オークションなど）をDiscordへ知らせる。
+#
+# 発生元プラグイン（ContractBoard / AuctionHouse など）はコンパイル時依存にしない。
+# Class.forName でクラス名を解決して動的に購読するため、見つからなければそのプラグインが
+# 未導入だとみなしてその購読だけを諦める。起動そのものは必ず成功する。
+notify:
+  # 既定は無効。webhook-url が空、または ${...} のまま（spsmc-infra の起動時置換が
+  # 効いていない）のときも、enabled: true にしていても実際には送信しない。
+  enabled: false
+
+  # Discord の Webhook URL。直書きせず、spsmc-infra 側で環境変数を埋め込む前提。
+  webhook-url: "${CFG_ECOLIFE_DISCORD_WEBHOOK}"
+
+  # Webhookの表示名とアイコン。avatar-url を空にすると、Webhook作成時に設定した既定を使う。
+  username: "SPSMCお知らせ"
+  avatar-url: ""
+
+  # HTTP接続・応答待ちの上限（秒）。短めにしているのは、Discord側の障害が起きても
+  # 送信専用スレッドが長時間詰まったままにならないようにするため。
+  connect-timeout-seconds: 5
+  request-timeout-seconds: 10
+
+  # 送信待ちキューの上限。あふれたぶんは待たせずに捨て、捨てた件数だけログにまとめて残す。
+  queue-max-size: 200
+
+  # 全体の毎分送信上限。Discord Webhookのレート制限（概ね1分30回）に余裕を持って収める。
+  max-per-minute: 20
+
+  # プレイヤー入力（依頼タイトル・アイテム名など）を貼り付ける1項目あたりの長さ上限。
+  # 超えたぶんは末尾を … に置き換える。
+  text-max-length: 80
+
+  # 通知の発生元。キーは自由に増やせる。新しいプラグインを足すときはここに1件追記するだけでよく、
+  # EcoLifeAssist 側のコード変更は要らない。
+  sources:
+    contract-created:
+      enabled: true
+      # mc-irai（ContractBoard）が投げるイベントの完全修飾クラス名。
+      event: "net.mcirai.contractboard.event.ContractCreatedEvent"
+      # {player} などは、発生元イベントの getNotifyPlaceholders() から差し込む。
+      template: "📋 **{player}** さんが新しい依頼「{title}」を出しました（報酬 {reward} / 期限 {expire_hours}時間）"
+      # この種別の最短送信間隔（秒）。依頼の連投で通知が埋まらないようにする。
+      min-interval-seconds: 60
+      # 同一プレイヤーからの連投を抑える間隔（秒）。
+      per-player-cooldown-seconds: 300
+    auction-listed:
+      enabled: true
+      # mc-auction（AuctionHouse）が投げるイベントの完全修飾クラス名。
+      event: "net.mcauction.auctionhouse.event.AuctionListedEvent"
+      template: "🔨 **{player}** さんが「{item}」を{amount}個 出品しました（開始価格 {start_price}）"
+      min-interval-seconds: 60
+      per-player-cooldown-seconds: 300
+
+# 受け取ったときの演出。
+effects:
+  title: true
+  sound: ENTITY_PLAYER_LEVELUP
+
+# カレンダーの中身。キーが「その月の何マス目か」。
+# 2月は最大28マス目まで、31日ある月だけ31マス目に届く。
+# 1マスに複数のアイテムを置ける。material はバニラのアイテム名。
+rewards:
+  1:
+    - { material: BREAD, amount: 16 }
+  2:
+    - { material: TORCH, amount: 32 }
+  3:
+    - { material: COAL, amount: 16 }
+  4:
+    - { material: COOKED_BEEF, amount: 8 }
+  5:
+    - { material: IRON_INGOT, amount: 4 }
+  6:
+    - { material: ARROW, amount: 32 }
+  # 1週間ぶんの節目。
+  7:
+    - { material: EXPERIENCE_BOTTLE, amount: 8 }
+    - { material: BREAD, amount: 16 }
+  8:
+    - { material: BREAD, amount: 24 }
+  9:
+    - { material: TORCH, amount: 48 }
+  10:
+    - { material: BONE_MEAL, amount: 32 }
+  11:
+    - { material: IRON_INGOT, amount: 8 }
+  12:
+    - { material: COOKED_BEEF, amount: 16 }
+  13:
+    - { material: GOLD_INGOT, amount: 4 }
+  # 2週間ぶんの節目。
+  14:
+    - { material: EXPERIENCE_BOTTLE, amount: 16 }
+    - { material: COAL_BLOCK, amount: 2 }
+  15:
+    - { material: COAL_BLOCK, amount: 4 }
+  16:
+    - { material: IRON_INGOT, amount: 12 }
+  17:
+    - { material: ARROW, amount: 64 }
+  18:
+    - { material: LAPIS_LAZULI, amount: 32 }
+  19:
+    - { material: GOLDEN_APPLE, amount: 1 }
+  20:
+    - { material: GOLD_INGOT, amount: 8 }
+  # 3週間ぶんの節目。ここから値の張るものが出る。
+  21:
+    - { material: DIAMOND, amount: 1 }
+    - { material: EXPERIENCE_BOTTLE, amount: 8 }
+  22:
+    - { material: EXPERIENCE_BOTTLE, amount: 16 }
+  23:
+    - { material: IRON_BLOCK, amount: 1 }
+  24:
+    - { material: ENDER_PEARL, amount: 4 }
+  25:
+    - { material: OBSIDIAN, amount: 8 }
+  26:
+    - { material: EMERALD, amount: 4 }
+  27:
+    - { material: GOLDEN_APPLE, amount: 2 }
+  # 4週間ぶんの節目。
+  28:
+    - { material: DIAMOND, amount: 2 }
+    - { material: EXPERIENCE_BOTTLE, amount: 16 }
+  29:
+    - { material: EXPERIENCE_BOTTLE, amount: 24 }
+  30:
+    - { material: DIAMOND, amount: 3 }
+  # 31日ある月を皆勤した人だけが届くマス。
+  31:
+    - { material: DIAMOND, amount: 4 }
+    - { material: GOLDEN_APPLE, amount: 1 }

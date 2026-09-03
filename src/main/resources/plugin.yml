@@ -1,0 +1,23 @@
+name: EcoLifeAssist
+version: '${project.version}'
+main: dev.spa.ecolife.EcoLifeAssistPlugin
+api-version: "1.21"
+author: spa
+description: 毎日の暮らしを助ける補助プラグイン。第一弾はログインボーナス。
+
+commands:
+  daily:
+    description: 今月のログインボーナスの進み具合を見る
+    usage: /daily
+    aliases: [bonus, loginbonus]
+  ecolife:
+    description: エコライフアシストの管理コマンド
+    usage: /ecolife <reload|info|reset|notify status|notify test>
+
+permissions:
+  ecolife.daily:
+    description: ログインボーナスの受け取り
+    default: true
+  ecolife.admin:
+    description: 設定の再読み込みと受け取り状況の操作
+    default: op
