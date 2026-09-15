@@ -164,3 +164,54 @@ rewards:
   31:
     - { material: DIAMOND, amount: 4 }
     - { material: GOLDEN_APPLE, amount: 1 }
+
+# 紹介報酬。Vault と経済プラグインがない場合は支払いを保留します。
+invite:
+  enabled: true
+  required-hours: 2.0
+  # 登録時の金額を保存します。変更は新しい登録から適用されます。
+  rewards:
+    inviter: 2000.0
+    newcomer: 1000.0
+  messages:
+    no-permission: '&cこの操作の権限がありません。'
+    unavailable: '&c招待機能を停止しています。運営へお問い合わせください。'
+    disabled: '&e現在、友達招待はお休みしています。'
+    player-only: '&eゲーム内で実行してください。'
+    not-new: '&e招待を登録できるのは、この機能の導入後に初参加した人だけです。'
+    too-late: '&e招待を登録できるプレイ時間を過ぎています。'
+    unknown: '&e名前を確認してください。紹介者は導入後に一度ログインする必要があります。'
+    self: '&e自分の名前は登録できません。'
+    already: '&e紹介者はすでに登録されています。'
+    cycle: '&eお互いを紹介する登録はできません。'
+    ip-unknown: '&e接続情報を確認できません。紹介者に一度ログインしてもらってください。'
+    same-ip: '&e同じ接続元のため招待を受け付けられません。ご家族の場合は運営へご相談ください。'
+    linked: '&a{name} さんからの招待を登録しました。必要なプレイ時間に達すると双方へ報酬が入ります。'
+    paid: '&a友達招待が成立し、{amount}S を受け取りました！'
+    usage: '&e/invite <名前> で登録、/invite で実績、/invite top でランキングを表示します。'
+    top-title: '&6友達招待ランキング（成立件数）'
+    rank: '&e{rank}位 &f{name} &7: {count}人'
+    state-waiting: '&eプレイ時間・報酬処理の完了待ち'
+    state-blocked: '&c同一接続元のため保留（運営へ相談）'
+    state-complete: '&a成立・双方へ支払い済み'
+    state-cancelled: '&7取り消し済み'
+    gui-title: '友達招待 — 実績 {page}ページ'
+    gui-top: '友達招待 — ランキング {page}ページ'
+    gui-prev: '&e前のページ'
+    gui-next: '&e次のページ'
+    gui-code: '&aあなたの招待コード: {name}'
+    gui-code-help: '&f友達に /invite {name} と入力してもらってください。'
+    gui-register-help: '&7/invite <紹介者の名前> で登録できます。'
+    gui-list: '&a自分の招待実績を見る'
+    gui-ranking: '&6ランキングを見る'
+    gui-own: '&b自分が受けた招待'
+    gui-inviter: '&f紹介者: {name}'
+    no-link: '&7招待の登録はありません。'
+    status: '&f招待有効: {enabled} / Vault経済: {vault}'
+    person-info: '&f{name} / 新規対象: {eligible}'
+    info: '&f紹介者: {name} / 状態: {state} / 紹介者支払: {inviterPay} / 新規支払: {newcomerPay} / IP救済: {override}'
+    online-required: '&e新規プレイヤーがログイン中に操作してください。'
+    admin-done: '&a更新しました。操作は招待DBの監査記録に保存されます。'
+    cannot-cancel: '&e取り消せません。支払い開始前の未成立の招待だけ取り消せます。'
+    not-uncertain: '&e確認待ち（SENDING）の支払いではありません。'
+    admin-usage: '&e/invite admin status | info <新規> | link <新規> <紹介者> | allowip <新規> | cancel <新規> | resolve <新規> <inviter|newcomer> <paid|unpaid>'

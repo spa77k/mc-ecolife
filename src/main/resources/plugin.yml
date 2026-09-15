@@ -1,11 +1,15 @@
 name: EcoLifeAssist
 version: '${project.version}'
 main: dev.spa.ecolife.EcoLifeAssistPlugin
-api-version: "1.21"
+api-version: "26.1.2"
+softdepend: [Vault]
 author: spa
-description: 毎日の暮らしを助ける補助プラグイン。第一弾はログインボーナス。
+description: ログインボーナス・友達招待・Discord通知。
 
 commands:
+  invite:
+    description: 友達招待と招待実績
+    usage: /invite [名前|top|code 名前|admin]
   daily:
     description: 今月のログインボーナスの進み具合を見る
     usage: /daily
@@ -15,6 +19,9 @@ commands:
     usage: /ecolife <reload|info|reset|notify status|notify test>
 
 permissions:
+  ecolife.invite:
+    description: 友達招待の登録・GUI・ランキング
+    default: true
   ecolife.daily:
     description: ログインボーナスの受け取り
     default: true

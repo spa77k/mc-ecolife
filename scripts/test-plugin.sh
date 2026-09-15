@@ -26,7 +26,7 @@ echo "[1/3] プラグインをビルドしています"
 mvn -B -q package
 
 echo "[2/3] JAR をテストサーバーへ配置しています"
-cp target/ecolifeassist-1.0.0.jar "$SERVER_DIR/plugins/EcoLifeAssist.jar"
+cp target/ecolifeassist-1.1.0.jar "$SERVER_DIR/plugins/EcoLifeAssist.jar"
 
 echo "[3/3] テストサーバーを起動して確認しています"
 cd "$SERVER_DIR"

@@ -10,6 +10,8 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     /** プレイ中に日付が変わった人を拾うための見回り間隔（ティック）。1分。 */
     private static final long ROLLOVER_PERIOD_TICKS = 1200L;
 
+    private dev.spa.ecolife.invite.InviteService invites;
+
     private BonusConfig bonusConfig;
     private BonusStore store;
     private BonusService bonuses;
@@ -32,6 +34,15 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
 
+        try {
+            invites = new dev.spa.ecolife.invite.InviteService(this);
+            invites.validate();
+        } catch (Exception | LinkageError e) {
+            getLogger().log(java.util.logging.Level.SEVERE, "招待機能の起動に失敗しました。", e);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
         register("daily", new DailyCommand(this), null);
         EcoLifeCommand ecoLifeCommand = new EcoLifeCommand(this);
         register("ecolife", ecoLifeCommand, ecoLifeCommand);
@@ -48,6 +59,9 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (invites != null) {
+            try { invites.close(); } catch (java.sql.SQLException e) { getLogger().log(java.util.logging.Level.SEVERE, "招待DBを閉じられませんでした", e); }
+        }
         if (notifyBridge != null) {
             notifyBridge.unregisterAll();
         }
@@ -94,6 +108,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     /** /ecolife reload から呼ばれる。config.yml を読み直し、通知の購読も張り直す。 */
     void reloadAll() {
         reloadConfig();
+        if (invites != null) invites.validate();
         this.bonusConfig = BonusConfig.load(this);
 
         notifyBridge.unregisterAll();
