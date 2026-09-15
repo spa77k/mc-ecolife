@@ -1,4 +1,4 @@
-# 友達招待（EcoLifeAssist 1.1.0）
+# 友達招待（EcoLifeAssist 1.0.0）
 
 ## プレイヤーの使い方
 
