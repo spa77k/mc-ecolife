@@ -5,6 +5,7 @@ import net.milkbowl.vault.economy.Economy;
 
 import org.bukkit.*;
 import org.bukkit.command.CommandSender;
+import org.bukkit.advancement.AdvancementProgress;
 import org.bukkit.entity.Player;
 import org.bukkit.event.*;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -80,6 +81,10 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
                                                 case "getAddress" ->
                                                         new InetSocketAddress(ip, 25565);
                                                 case "getStatistic" -> ticks;
+                                                case "getAdvancementProgress" -> Proxy.newProxyInstance(
+                                                        AdvancementProgress.class.getClassLoader(),
+                                                        new Class[] {AdvancementProgress.class},
+                                                        (p, m, a) -> m.getName().equals("isDone") ? false : null);
                                                 case "hasPermission", "isOnline", "isValid" -> true;
                                                 case "getServer" -> Bukkit.getServer();
                                                 case "openInventory" -> {
@@ -120,7 +125,21 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
                 b = new User("ProbeNew", "127.0.0.3", false),
                 same = new User("ProbeFamily", "127.0.0.2", false),
                 old = new User("ProbeOld", "127.0.0.4", true);
+        if (Boolean.getBoolean("probe.no-mclevel")) {
+            User unavailable = new User("ProbeUnavailable", "127.0.0.8", false);
+            service.join(new PlayerJoinEvent(unavailable.player, Component.empty()));
+            unavailable.ticks = 0;
+            command(plugin, unavailable.player, store.person(a.id).name());
+            require(store.link(unavailable.id) == null, "registration held without McLevel API");
+            same.ticks = Integer.MAX_VALUE;
+            service.check(same.player);
+            require(store.link(same.id).state().equals("WAITING"), "payment held without McLevel API");
+            return;
+        }
+        require(Bukkit.getPluginManager().isPluginEnabled("McLevel"), "real McLevel enabled");
         if (store.link(b.id) != null) {
+            require(activeSeconds(b) == 7200, "McLevel active time survives restart");
+            service.check(b.player);
             require(
                     store.link(b.id).state().equals("COMPLETE"),
                     "completed survives server restart");
@@ -139,11 +158,12 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         require(store.link(b.id) == null, "self rejected");
         command(plugin, same.player, a.name);
         require(store.link(same.id) == null, "same IP rejected");
+        b.ticks = Integer.MAX_VALUE;
         command(plugin, b.player, a.name);
-        require(store.link(b.id) != null, "normal bind");
+        require(store.link(b.id) != null, "registration uses active time, not vanilla time");
         command(plugin, b.player, old.name);
         require(store.link(b.id).inviter().equals(a.id), "cannot overwrite");
-        b.ticks = 143999;
+        setActiveSeconds(b, 7199);
         service.check(b.player);
         require(store.link(b.id).inviterPay().equals("PENDING"), "under 2h unpaid");
         Economy economy = Bukkit.getServicesManager().getRegistration(Economy.class).getProvider();
@@ -151,7 +171,9 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         economy.createPlayerAccount(Bukkit.getOfflinePlayer(b.id));
         double beforeA = economy.getBalance(Bukkit.getOfflinePlayer(a.id)),
                 beforeB = economy.getBalance(Bukkit.getOfflinePlayer(b.id));
-        b.ticks = 144000;
+        for (int i = 0; i < 3; i++) service.check(b.player);
+        require(store.link(b.id).state().equals("WAITING"), "AFK vanilla time cannot complete invite");
+        setActiveSeconds(b, 7200);
         service.check(b.player);
         require(store.link(b.id).state().equals("COMPLETE"), "2h completes");
         require(
@@ -180,14 +202,14 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         require(store.link(same.id).overrideIp(), "family override stored");
         User late = new User("ProbeLate", "127.0.0.5", false);
         service.join(new PlayerJoinEvent(late.player, Component.empty()));
-        late.ticks = 144000;
+        setActiveSeconds(late, 7200);
         command(plugin, late.player, a.name);
         require(store.link(late.id) == null, "late registration rejected");
         User blocked = new User("ProbeBlocked", "127.0.0.6", false);
         service.join(new PlayerJoinEvent(blocked.player, Component.empty()));
         command(plugin, blocked.player, a.name);
         store.person(blocked.id, blocked.name, true, serviceHash(service, "127.0.0.2"));
-        blocked.ticks = 144000;
+        setActiveSeconds(blocked, 7200);
         service.check(blocked.player);
         require(
                 store.link(blocked.id).state().equals("BLOCKED"),
@@ -201,7 +223,7 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         User fault = new User("ProbeFailure", "127.0.0.7", false);
         service.join(new PlayerJoinEvent(fault.player, Component.empty()));
         command(plugin, fault.player, a.name);
-        fault.ticks = 144000;
+        setActiveSeconds(fault, 7200);
         Economy flaky =
                 (Economy)
                         Proxy.newProxyInstance(
@@ -247,8 +269,43 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         require(
                 economy.getBalance(Bukkit.getOfflinePlayer(a.id)) - beforeFailureA == 2000,
                 "recovery does not repay inviter");
+        // Persist the adapter explicitly: it is not in Bukkit's real online player list.
+        Object levels = levels();
+        levels.getClass().getMethod("save", Player.class).invoke(levels, b.player);
+        var mcLevel = Bukkit.getPluginManager().getPlugin("McLevel");
+        Bukkit.getPluginManager().disablePlugin(mcLevel);
+        same.ticks = Integer.MAX_VALUE;
+        service.check(same.player);
+        require(store.link(same.id).state().equals("WAITING"), "disabled McLevel holds payment");
+        User held = new User("ProbeHeld", "127.0.0.9", false);
+        service.join(new PlayerJoinEvent(held.player, Component.empty()));
+        command(plugin, held.player, a.name);
+        require(store.link(held.id) == null, "disabled McLevel holds registration");
+        Bukkit.getPluginManager().enablePlugin(mcLevel);
+        command(plugin, held.player, a.name);
+        require(store.link(held.id) != null, "registration recovers when McLevel returns");
         plugin.getCommand("ecolife")
                 .execute(Bukkit.getConsoleSender(), "ecolife", new String[] {"reload"});
+    }
+
+    private static Object levels() throws Exception {
+        var mcLevel = Bukkit.getPluginManager().getPlugin("McLevel");
+        var field = mcLevel.getClass().getDeclaredField("levelService");
+        field.setAccessible(true);
+        return field.get(mcLevel);
+    }
+
+    private static long activeSeconds(User user) throws Exception {
+        var mcLevel = Bukkit.getPluginManager().getPlugin("McLevel");
+        return (long) mcLevel.getClass().getMethod("getActiveSeconds", Player.class)
+                .invoke(mcLevel, user.player);
+    }
+
+    private static void setActiveSeconds(User user, long seconds) throws Exception {
+        Object levels = levels();
+        levels.getClass().getMethod("addActiveSeconds", Player.class, long.class)
+                .invoke(levels, user.player, seconds - activeSeconds(user));
+        require(activeSeconds(user) == seconds, "public API returns live unsaved seconds");
     }
 
     private static String serviceHash(InviteService s, String ip) throws Exception {

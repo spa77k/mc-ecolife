@@ -22,10 +22,12 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
     final InviteStore store;
     private final byte[] secret;
     private final InviteGui gui;
+    private final McLevelPlaytime playtime;
     private boolean broken;
 
     public InviteService(JavaPlugin plugin) throws Exception {
         this.plugin = plugin;
+        playtime = new McLevelPlaytime(plugin.getLogger());
         store = new InviteStore(plugin.getDataFolder().toPath().resolve("invites.db"));
         byte[] seed = new byte[32];
         new SecureRandom().nextBytes(seed);
@@ -65,10 +67,10 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
 
     private long threshold() {
         double hours = plugin.getConfig().getDouble("invite.required-hours", 2);
-        if (!Double.isFinite(hours) || hours <= 0 || hours > Integer.MAX_VALUE / 72000.0)
+        if (!Double.isFinite(hours) || hours <= 0 || hours * 3600 >= Long.MAX_VALUE)
             throw new IllegalArgumentException(
-                    "invite.required-hours must be positive and fit Bukkit statistics");
-        return (long) Math.ceil(hours * 72000);
+                    "invite.required-hours must be positive and fit active seconds");
+        return (long) Math.ceil(hours * 3600);
     }
 
     private double amount(String key, double fallback) {
@@ -142,7 +144,12 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
             say(sender, "not-new");
             return false;
         }
-        if (newcomer.getStatistic(Statistic.PLAY_ONE_MINUTE) >= threshold()) {
+        OptionalLong activeSeconds = playtime.seconds(newcomer);
+        if (activeSeconds.isEmpty()) {
+            say(sender, "playtime-unavailable");
+            return false;
+        }
+        if (activeSeconds.getAsLong() >= threshold()) {
             say(sender, "too-late");
             return false;
         }
@@ -206,7 +213,8 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
                 return;
             }
         }
-        if (newcomer.getStatistic(Statistic.PLAY_ONE_MINUTE) < threshold()) return;
+        OptionalLong activeSeconds = playtime.seconds(newcomer);
+        if (activeSeconds.isEmpty() || activeSeconds.getAsLong() < threshold()) return;
         if (!economyAvailable()) return;
         if (l.inviterPay().equals("SENDING") || l.newcomerPay().equals("SENDING")) return;
         // Both attempts run in this server tick. Vault has no multi-account transaction API.

@@ -2,7 +2,7 @@ name: EcoLifeAssist
 version: '${project.version}'
 main: dev.spa.ecolife.EcoLifeAssistPlugin
 api-version: "26.1.2"
-softdepend: [Vault]
+softdepend: [Vault, McLevel]
 author: spa
 description: ログインボーナス・友達招待・Discord通知。
 
