@@ -99,8 +99,7 @@ PaperMC サーバー向けの、プレイヤーの継続的なログインとコ
   - `/invite top`: 招待成立数の上位10人をチャットに表示します。
 
 #### 不正防止と設計
-- **同一IPの検出と除外**: 登録時および成立判定時にIPアドレスを確認し、同一接続元からの不正な多重登録を防止します（生のIPアドレスは保存せず、サーバー固有の秘密鍵を用いたHMAC-SHA256ハッシュのみを記録します）。
-- **家族間プレイ等の救済**: 同一ネットワーク内の家族や同居人など正当なプレイヤー同士の場合は、運営コマンド（`/invite admin link` や `/invite admin allowip`）を用いて手動でIP制限を免除できます。
+- **IP制限なし**: 同一IPや接続情報の有無に関係なく招待登録・報酬成立が可能です。旧版で同一IPのため保留された招待も、次回のオンライン判定で再開します。自分自身への招待・循環招待の禁止とアクティブ時間条件は継続します。
 - **決済の安全性**: Vaultの支払い処理において、例外やサーバー停止が起きても二重払いが発生しないよう、ステータス遷移（`PENDING` → `SENDING` → `PAID`）をSQLiteへ同期コミットしながら管理しています。
 
 詳細な仕様やコマンド、障害復旧手順については [友達招待の運営ガイド](docs/invite.md) を参照してください。
@@ -171,8 +170,8 @@ Bukkitのカスタムイベント（`getNotifyKind()` および `getNotifyPlaceh
 | `/ecolife notify test` | `ecolife.admin` | OP | 間引き制限を無視して、テスト通知を1件即時送信します。 |
 | `/invite admin status` | `ecolife.admin` | OP | 友達招待機能の有効状態とVault経済プロバイダーの接続状況を確認します。 |
 | `/invite admin info <新規>` | `ecolife.admin` | OP | 指定した新規プレイヤーの招待状態、紹介者、支払い状況、IP救済状況を確認します。 |
-| `/invite admin link <新規> <紹介者>` | `ecolife.admin` | OP | 同一IP制限を免除して招待を代理登録します（家族間等の救済用。新規のオンライン必須）。 |
-| `/invite admin allowip <新規>` | `ecolife.admin` | OP | 登録済みで同一IPにより保留となっている未成立招待のIP検査を免除します。 |
+| `/invite admin link <新規> <紹介者>` | `ecolife.admin` | OP | 招待を代理登録します（新規のオンライン必須）。 |
+| `/invite admin allowip <新規>` | `ecolife.admin` | OP | 旧版との互換用。現在はIP制限がなく、通常は不要です。 |
 | `/invite admin cancel <新規>` | `ecolife.admin` | OP | 支払い開始前の未成立招待を取り消します（入力期間内であれば再登録可能）。 |
 | `/invite admin resolve <新規> <inviter\|newcomer> <paid\|unpaid>` | `ecolife.admin` | OP | 結果不明となった支払いを、調査結果に基づき支払い済み/未払いへ確定します。 |
 
@@ -217,7 +216,7 @@ mvn -B package
   ```sh
   python3 scripts/test-invite-paper.py
   ```
-  Paper隔離サーバー（`target/invite-paper-smoke`）上で、実コマンド・イベント・GUI生成を駆動し、通常の報酬入金、2時間境界、同一IP拒否と再確認、改名対応、二重払い防止、片側失敗と手動復旧、Vault未導入時の起動などを検証します。
+  Paper隔離サーバー（`target/invite-paper-smoke`）上で、実コマンド・イベント・GUI生成を駆動し、通常の報酬入金、2時間境界、同一IPの登録・報酬成立と旧IP保留の再開、改名対応、二重払い防止、片側失敗と手動復旧、Vault未導入時の起動などを検証します。
 
 ---
 

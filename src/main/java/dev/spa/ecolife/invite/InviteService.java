@@ -166,16 +166,6 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
             say(sender, "already");
             return false;
         }
-        if (!override) {
-            if (!store.knownIp(id) || !store.knownIp(inviter.id())) {
-                say(sender, "ip-unknown");
-                return false;
-            }
-            if (store.sameIp(id, inviter.id())) {
-                say(sender, "same-ip");
-                return false;
-            }
-        }
         // Prevent reciprocal invitations/cycles, including manual links.
         Set<UUID> seen = new HashSet<>();
         UUID cursor = inviter.id();
@@ -203,16 +193,13 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
     public void check(Player newcomer) throws Exception {
         if (!enabled()) return;
         InviteStore.Link l = store.link(newcomer.getUniqueId());
-        if (l == null || !l.state().equals("WAITING")) return;
-        if (!l.overrideIp()) {
-            if (!store.knownIp(l.inviter()) || !store.knownIp(l.newcomer())) return;
-            if (store.sameIp(l.inviter(), l.newcomer())) {
-                store.state(l.newcomer(), "BLOCKED");
-                emit(InviteEvent.Kind.BLOCKED, store.link(l.newcomer()));
-                say(newcomer, "same-ip");
-                return;
-            }
+        if (l == null) return;
+        // Resume invitations held by the former IP restriction without changing payment records.
+        if (l.state().equals("BLOCKED")) {
+            store.state(l.newcomer(), "WAITING");
+            l = store.link(l.newcomer());
         }
+        if (!l.state().equals("WAITING")) return;
         OptionalLong activeSeconds = playtime.seconds(newcomer);
         if (activeSeconds.isEmpty() || activeSeconds.getAsLong() < threshold()) return;
         if (!economyAvailable()) return;

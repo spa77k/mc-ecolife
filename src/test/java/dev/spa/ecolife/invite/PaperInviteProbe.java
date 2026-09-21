@@ -147,7 +147,7 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
                     store.link(same.id).state().equals("WAITING"),
                     "pending survives server restart");
             require(store.link(b.id).inviterPay().equals("PAID"), "payment survives restart");
-            require(store.top(0).getFirst().count() == 2, "ranking survives restart");
+            require(store.top(0).getFirst().count() == 3, "ranking survives restart");
             return;
         }
         for (User u : List.of(a, b, same, old))
@@ -157,7 +157,7 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         command(plugin, b.player, b.name);
         require(store.link(b.id) == null, "self rejected");
         command(plugin, same.player, a.name);
-        require(store.link(same.id) == null, "same IP rejected");
+        require(store.link(same.id) != null, "same IP accepted");
         b.ticks = Integer.MAX_VALUE;
         command(plugin, b.player, a.name);
         require(store.link(b.id) != null, "registration uses active time, not vanilla time");
@@ -196,10 +196,11 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         require(a.inventory.getItem(47).getType() == Material.NAME_TAG, "GUI code");
         command(plugin, Bukkit.getConsoleSender(), "top");
         require(store.top(0).getFirst().name().equals(a.name), "ranking current name");
-        // Manual family link uses online requirement; IP exception logic is exercised in persisted
-        // ledger here.
-        store.bind(same.id, a.id, true, 2000, 1000, "probe-admin");
-        require(store.link(same.id).overrideIp(), "family override stored");
+        User unknownIp = new User("ProbeUnknownIp", "127.0.0.10", false);
+        store.person(unknownIp.id, unknownIp.name, true, null);
+        require(!store.knownIp(unknownIp.id), "fixture has no IP history");
+        command(plugin, unknownIp.player, a.name);
+        require(store.link(unknownIp.id) != null, "unknown IP accepted");
         User late = new User("ProbeLate", "127.0.0.5", false);
         service.join(new PlayerJoinEvent(late.player, Component.empty()));
         setActiveSeconds(late, 7200);
@@ -209,15 +210,20 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         service.join(new PlayerJoinEvent(blocked.player, Component.empty()));
         command(plugin, blocked.player, a.name);
         store.person(blocked.id, blocked.name, true, serviceHash(service, "127.0.0.2"));
-        setActiveSeconds(blocked, 7200);
         service.check(blocked.player);
-        require(
-                store.link(blocked.id).state().equals("BLOCKED"),
-                "same IP rechecked before payout");
-        command(plugin, Bukkit.getConsoleSender(), "admin", "allowip", blocked.name);
-        require(store.link(blocked.id).overrideIp(), "admin allows IP");
-        command(plugin, Bukkit.getConsoleSender(), "admin", "cancel", blocked.name);
-        require(store.link(blocked.id).state().equals("CANCELLED"), "admin cancel");
+        require(store.link(blocked.id).state().equals("WAITING"), "same IP does not block payout check");
+        // Simulate a persisted hold from the previous version.
+        store.state(blocked.id, "BLOCKED");
+        service.check(blocked.player);
+        require(store.link(blocked.id).state().equals("WAITING"), "legacy IP hold resumes");
+        setActiveSeconds(blocked, 7200);
+        economy.createPlayerAccount(Bukkit.getOfflinePlayer(blocked.id));
+        service.check(blocked.player);
+        require(store.link(blocked.id).state().equals("COMPLETE"), "same IP receives reward");
+        command(plugin, Bukkit.getConsoleSender(), "admin", "cancel", same.name);
+        require(store.link(same.id).state().equals("CANCELLED"), "admin cancel");
+        command(plugin, same.player, a.name);
+        require(store.link(same.id).state().equals("WAITING"), "cancelled invitation can register again");
         command(plugin, Bukkit.getConsoleSender(), "admin", "cancel", b.name);
         require(store.link(b.id).state().equals("COMPLETE"), "cannot cancel paid");
         User fault = new User("ProbeFailure", "127.0.0.7", false);
