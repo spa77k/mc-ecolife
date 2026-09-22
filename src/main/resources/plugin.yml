@@ -7,6 +7,9 @@ author: spa
 description: ログインボーナス・友達招待・Discord通知。
 
 commands:
+  poster:
+    description: 運営が用意したポスターを選んで受け取る
+    usage: /poster [reload]
   invite:
     description: 友達招待と招待実績
     usage: /invite [名前|top|code 名前|admin]
@@ -19,6 +22,12 @@ commands:
     usage: /ecolife <reload|info|reset|notify status|notify test>
 
 permissions:
+  ecolife.poster:
+    description: ポスター一覧と受け取り
+    default: true
+  ecolife.poster.admin:
+    description: ポスター画像一覧の再読み込み
+    default: op
   ecolife.invite:
     description: 友達招待の登録・GUI・ランキング
     default: true

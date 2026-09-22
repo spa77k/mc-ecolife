@@ -12,6 +12,8 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
     private dev.spa.ecolife.invite.InviteService invites;
 
+    private dev.spa.ecolife.poster.PosterService posters;
+
     private BonusConfig bonusConfig;
     private BonusStore store;
     private BonusService bonuses;
@@ -43,6 +45,16 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
             return;
         }
 
+        try {
+            posters = new dev.spa.ecolife.poster.PosterService(this);
+        } catch (Exception e) {
+            getLogger().log(java.util.logging.Level.SEVERE, "ポスター機能の起動に失敗しました。保存データを確認してください。", e);
+            java.util.Objects.requireNonNull(getCommand("poster")).setExecutor((sender, command, label, args) -> {
+                sender.sendMessage("ポスター機能は停止中です。運営へお知らせください。");
+                return true;
+            });
+        }
+
         register("daily", new DailyCommand(this), null);
         EcoLifeCommand ecoLifeCommand = new EcoLifeCommand(this);
         register("ecolife", ecoLifeCommand, ecoLifeCommand);
@@ -59,6 +71,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (posters != null) posters.close();
         if (invites != null) {
             try { invites.close(); } catch (java.sql.SQLException e) { getLogger().log(java.util.logging.Level.SEVERE, "招待DBを閉じられませんでした", e); }
         }

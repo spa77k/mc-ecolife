@@ -1,0 +1,11 @@
+# 画像は plugins/EcoLifeAssist/posters/images/ へ置いてください。
+# /poster reload で運営が再読み込みできます。初期状態では画像は登録されていません。
+# width / height は額縁の数（各1〜4）。画像の縦横比を維持し、余白は黒になります。
+# posters:
+#   neko:
+#     title: "ネコと和解せよ"
+#     file: "neko.png"
+#     width: 2
+#     height: 2
+#     enabled: true
+posters: {}
