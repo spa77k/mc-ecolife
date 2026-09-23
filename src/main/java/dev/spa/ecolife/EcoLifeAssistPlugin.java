@@ -13,6 +13,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     private dev.spa.ecolife.invite.InviteService invites;
 
     private dev.spa.ecolife.poster.PosterService posters;
+    private dev.spa.ecolife.rtp.RtpService rtp;
 
     private BonusConfig bonusConfig;
     private BonusStore store;
@@ -55,6 +56,22 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
             });
         }
 
+        try {
+            rtp = new dev.spa.ecolife.rtp.RtpService(this);
+            dev.spa.ecolife.rtp.RtpCommand rtpCommand = new dev.spa.ecolife.rtp.RtpCommand(rtp);
+            register("rtp", rtpCommand, rtpCommand);
+            getServer().getPluginManager().registerEvents(new org.bukkit.event.Listener() {
+                @org.bukkit.event.EventHandler
+                public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+                    rtp.cancel(event.getPlayer());
+                }
+            }, this);
+        } catch (Exception e) {
+            getLogger().log(java.util.logging.Level.SEVERE, "RTP機能の起動に失敗しました。", e);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
         register("daily", new DailyCommand(this), null);
         EcoLifeCommand ecoLifeCommand = new EcoLifeCommand(this);
         register("ecolife", ecoLifeCommand, ecoLifeCommand);
@@ -71,6 +88,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (rtp != null) rtp.close();
         if (posters != null) posters.close();
         if (invites != null) {
             try { invites.close(); } catch (java.sql.SQLException e) { getLogger().log(java.util.logging.Level.SEVERE, "招待DBを閉じられませんでした", e); }
@@ -121,6 +139,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     /** /ecolife reload から呼ばれる。config.yml を読み直し、通知の購読も張り直す。 */
     void reloadAll() {
         reloadConfig();
+        if (rtp != null) rtp.reload();
         if (invites != null) invites.validate();
         this.bonusConfig = BonusConfig.load(this);
 

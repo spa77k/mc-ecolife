@@ -1,0 +1,13 @@
+# BetterRTP から移行するランダムテレポート設定。
+enabled: true
+center-x: 0
+center-z: 0
+min-radius: 10
+max-radius: 3000
+min-y: 0
+max-y: 320
+nether-max-y: 120
+max-attempts: 32
+cooldown-seconds: 600
+delay-seconds: 5
+disabled-worlds: [prison, creative]

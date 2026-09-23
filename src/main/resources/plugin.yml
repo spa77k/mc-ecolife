@@ -7,6 +7,9 @@ author: spa
 description: ログインボーナス・友達招待・Discord通知・ポスター。
 
 commands:
+  rtp:
+    description: 安全な地点へランダムに移動する
+    usage: /rtp [world <ワールド>|player <名前> <ワールド>]
   poster:
     description: 運営が用意したポスターを選んで受け取る
     usage: /poster [reload]
@@ -22,6 +25,15 @@ commands:
     usage: /ecolife <reload|info|reset|notify status|notify test>
 
 permissions:
+  ecolife.rtp:
+    description: 現在のワールドでランダムテレポートする
+    default: true
+  ecolife.rtp.world:
+    description: 別のワールドへランダムテレポートする
+    default: op
+  ecolife.rtp.admin:
+    description: 他のプレイヤーをランダムテレポートする
+    default: op
   ecolife.poster:
     description: ポスター一覧と受け取り
     default: true
