@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""隔離Paper上でEssentialsXとの/home衝突解決と料金設定を確認する。"""
+"""隔離Paper上でEcoLifeAssistがホームコマンドを登録しないことを確認する。"""
 import os
 import pathlib
 import shutil
@@ -37,4 +37,4 @@ for line in output.splitlines():
         print(line, flush=True)
 if result.returncode or 'HOME_PROBE_PASS' not in output or 'HOME_PROBE_FAIL' in output:
     raise SystemExit('FAILED: ' + str(work / 'run.log'))
-print('PASS: command routing and configured price/limit on Paper + EssentialsX. Logs: ' + str(work))
+print('PASS: EcoLifeAssist has no home commands on Paper + EssentialsX. Logs: ' + str(work))

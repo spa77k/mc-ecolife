@@ -2,17 +2,11 @@ name: EcoLifeAssist
 version: '${project.version}'
 main: dev.spa.ecolife.EcoLifeAssistPlugin
 api-version: "26.1.2"
-softdepend: [Vault, McLevel, Essentials]
+softdepend: [Vault, McLevel]
 author: spa
-description: ログインボーナス・友達招待・Discord通知・ホーム。
+description: ログインボーナス・友達招待・Discord通知・ポスター。
 
 commands:
-  home:
-    description: 登録したホーム1または2へ移動する
-    usage: /home [1|2]
-  sethome:
-    description: ホーム1または2を現在地に登録する
-    usage: /sethome [1|2]
   poster:
     description: 運営が用意したポスターを選んで受け取る
     usage: /poster [reload]
@@ -28,9 +22,6 @@ commands:
     usage: /ecolife <reload|info|reset|notify status|notify test>
 
 permissions:
-  ecolife.home:
-    description: ホーム1または2を利用する
-    default: true
   ecolife.poster:
     description: ポスター一覧と受け取り
     default: true

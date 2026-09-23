@@ -56,9 +56,6 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         }
 
         register("daily", new DailyCommand(this), null);
-        HomeCommand homeCommand = new HomeCommand(this);
-        register("home", homeCommand, homeCommand);
-        register("sethome", homeCommand, homeCommand);
         EcoLifeCommand ecoLifeCommand = new EcoLifeCommand(this);
         register("ecolife", ecoLifeCommand, ecoLifeCommand);
 
