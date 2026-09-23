@@ -48,3 +48,10 @@
 - 取得済み地図のIDと描画キャッシュを維持する。カタログ削除・画像変更で設置済みの表示を壊さない。
 - 変更時は `mvn -B package` と `python3 scripts/test-poster-paper.py` を実行する。隔離環境は `target/poster-paper-smoke`、`127.0.0.1:25580`。テスト用Playerと実クライアント確認は区別する。
 - 詳細は `docs/posters.md`。リリース更新だけでは本番反映しない。
+
+## ホーム機能
+
+- 2026-09-23の指定: `/sethome` と `/sethome 2` で2か所登録し、`/home` は1番、`/home 2` は2番へ移動する。
+- EssentialsX の既存ホーム記録を利用する。1番は `home`、2番は `home2` に対応させ、既存の `home` を維持する。
+- 登録・上書きは100S、移動は既存の2S。料金と2件上限は `../spsmc-infra/plugins/Essentials/config.yml`、複数登録権限は同リポジトリの `luckperms-bootstrap.sk` で管理する。
+- 変更時は `mvn -B package` と `python3 scripts/test-home-paper.py` を実行する。隔離Paperは `target/home-paper-smoke`、待受は `127.0.0.1:25581`。テスト用Playerと実クライアント確認を区別する。

@@ -1,7 +1,7 @@
 # EcoLifeAssist（エコライフアシスト）
 
 PaperMC サーバー向けの、プレイヤーの継続的なログインとコミュニティ活性化を支援するプラグインです。
-**カレンダー式ログインボーナス**、**友達招待システム**、**Discord通知連携**、および**画像ポスター**の機能を提供します。
+**カレンダー式ログインボーナス**、**友達招待システム**、**Discord通知連携**、**画像ポスター**、および**2か所のホーム**の機能を提供します。
 （デイリー任務や実績など、毎日のプレイ動機につながる機能も今後順次追加予定です）
 
 ---
@@ -29,11 +29,15 @@ PaperMC サーバー向けの、プレイヤーの継続的なログインとコ
 | **Java** | Java 25 |
 | **ビルドツール** | Maven |
 | **メインクラス** | `dev.spa.ecolife.EcoLifeAssistPlugin` |
-| **任意依存 (softdepend)** | [Vault](https://github.com/MilkBowl/VaultAPI) ＋ 経済プラグイン<br>※友達招待の通貨報酬に使用。未導入でもログインボーナスやDiscord通知は動作します。 |
+| **任意依存 (softdepend)** | [Vault](https://github.com/MilkBowl/VaultAPI) ＋ 経済プラグイン、EssentialsX<br>※友達招待の通貨報酬とホームに使用。未導入でもログインボーナスやDiscord通知は動作します。 |
 
 ---
 
 ## 主な機能
+
+### ホーム
+
+EssentialsX の既存のホーム記録を使い、`/sethome` と `/sethome 2` で2か所を登録できます。`/home` はホーム1、`/home 2` はホーム2へ移動します。`/home 1` と `/sethome 1` も使えます。既存の `/sethome` で登録した場所はホーム1として残ります。登録・上書きには100S、移動には2Sを EssentialsX の `command-costs` で徴収します。運用設定と権限は `spsmc-infra` 側にあります。
 
 ### 画像ポスター
 
@@ -160,6 +164,8 @@ Bukkitのカスタムイベント（`getNotifyKind()` および `getNotifyPlaceh
 | コマンド | エイリアス | 権限 | 既定 | 説明 |
 | --- | --- | --- | --- | --- |
 | `/daily` | `/bonus`, `/loginbonus` | `ecolife.daily` | 全員 | 今月の進み具合と次のマスの中身を確認します。未受取分がある場合はその場で付与されます。 |
+| `/sethome [1\|2]` | — | `ecolife.home` + `essentials.sethome` | 全員 | 現在地をホーム1または2に登録します。登録・上書きに100Sかかります。 |
+| `/home [1\|2]` | — | `ecolife.home` + `essentials.home` | 全員 | 登録済みホームへ移動します。移動料は2Sです。 |
 | `/invite <紹介者名>` | `/invite code <紹介者名>` | `ecolife.invite` | 全員 | アクティブプレイ時間2時間未満で紹介者を登録します。 |
 | `/invite` | — | `ecolife.invite` | 全員 | 招待実績GUI（自身のコード確認、招待一覧・状況、受取履歴、ランキング）を開きます。 |
 | `/invite top` | — | `ecolife.invite` | 全員 | 友達招待の成立数ランキング（上位10名）をチャットに表示します。 |
