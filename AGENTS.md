@@ -54,3 +54,9 @@
 - 2026-09-23の指定により、EcoLifeAssist の `/home` と `/sethome`、EssentialsX とのホーム連携を削除した。再導入しない。
 - EssentialsX 自体のホーム機能・設定・保存済みデータは `../spsmc-infra` の管理範囲であり、この削除では変更しない。
 - コマンド所有者の確認には `python3 scripts/test-home-paper.py` を使う。隔離Paperは `target/home-paper-smoke`、待受は `127.0.0.1:25581`。
+
+## ログインボーナスとAdminShop
+
+- 2026-09-24の指定: 14マス目をAdminShop製の「帰還の護符」1個に差し替える。商品IDは `return_charm`。同梱設定と `../spsmc-infra/plugins/EcoLifeAssist/config.yml` を揃える。
+- AdminShopが生成した効果データ付きの本物だけを渡す。未導入・停止・商品欠落・連携失敗時は14マス目の受け取りと記録を保留する。復旧後は `/daily` で再試行できる。
+- 変更時はAdminShopもビルドし、`python3 scripts/test-daily-adminshop-paper.py` で隔離Paperを確認する。待受は `127.0.0.1:25582`。本番反映は別途明示依頼が必要。

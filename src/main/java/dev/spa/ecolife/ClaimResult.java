@@ -22,7 +22,9 @@ record ClaimResult(Status status, int slot, List<ItemStack> given, int dropped, 
         /** 設定で無効になっている。 */
         DISABLED,
         /** そのマスに報酬が設定されていない。マスは進める。 */
-        NO_REWARD
+        NO_REWARD,
+        /** 外部プラグインの報酬を用意できず、受け取りを保留した。 */
+        UNAVAILABLE
     }
 
     static ClaimResult of(Status status) {

@@ -51,7 +51,13 @@ final class BonusService {
 
         int slot = record.slotsIn(month) + 1;
         boolean perfect = slot >= month.lengthOfMonth();
-        List<ItemStack> rewards = config.rewards().forDay(slot);
+        List<ItemStack> rewards;
+        try {
+            rewards = config.rewards().forDay(slot);
+        } catch (RewardTable.UnavailableException e) {
+            plugin.getLogger().warning(slot + "マス目の報酬を保留: " + e.getMessage());
+            return ClaimResult.of(ClaimResult.Status.UNAVAILABLE);
+        }
 
         int dropped = rewards.isEmpty() ? 0 : give(player, rewards);
         plugin.store().put(player.getUniqueId(),
@@ -88,6 +94,7 @@ final class BonusService {
             }
             case NO_REWARD -> player.sendMessage(Text.prefixed("&7今日（&f" + result.slot()
                     + "&7マス目）の報酬が設定されていません。運営に知らせてください。"));
+            case UNAVAILABLE -> player.sendMessage(Text.prefixed("&e今日の報酬を用意できません。受け取り記録は進めていません。運営へお知らせください。"));
             case CLAIMED -> sendClaimed(player, result, config);
         }
     }
@@ -140,8 +147,15 @@ final class BonusService {
 
         int next = slots + 1;
         if (next <= month.lengthOfMonth()) {
-            List<ItemStack> rewards = config.rewards().forDay(next);
-            if (rewards.isEmpty()) {
+            List<ItemStack> rewards;
+            try {
+                rewards = config.rewards().forDay(next);
+            } catch (RewardTable.UnavailableException e) {
+                rewards = null;
+            }
+            if (rewards == null) {
+                player.sendMessage(Text.prefixed("&7次（&f" + next + "&7マス目）の報酬は現在確認できません。"));
+            } else if (rewards.isEmpty()) {
                 player.sendMessage(Text.prefixed("&7次（&f" + next + "&7マス目）の報酬は未設定です。"));
             } else {
                 player.sendMessage(Text.prefixed("&7次（&f" + next + "&7マス目）: ").append(itemList(rewards)));

@@ -91,6 +91,7 @@ effects:
 # カレンダーの中身。キーが「その月の何マス目か」。
 # 2月は最大28マス目まで、31日ある月だけ31マス目に届く。
 # 1マスに複数のアイテムを置ける。material はバニラのアイテム名。
+# adminshop-item は AdminShop が生成する効果付き商品ID。利用できない日は受け取りを保留する。
 rewards:
   1:
     - { material: BREAD, amount: 16 }
@@ -122,8 +123,7 @@ rewards:
     - { material: GOLD_INGOT, amount: 4 }
   # 2週間ぶんの節目。
   14:
-    - { material: EXPERIENCE_BOTTLE, amount: 16 }
-    - { material: COAL_BLOCK, amount: 2 }
+    - { adminshop-item: return_charm }
   15:
     - { material: COAL_BLOCK, amount: 4 }
   16:

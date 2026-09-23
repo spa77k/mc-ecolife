@@ -15,17 +15,29 @@ final class RewardTable {
     /** カレンダーの最大マス数。31日ある月の皆勤でここまで届く。 */
     static final int MAX_DAY = 31;
 
-    private final Map<Integer, List<ItemStack>> byDay;
+    private final JavaPlugin plugin;
+    private final Map<Integer, List<RewardEntry>> byDay;
 
-    private RewardTable(Map<Integer, List<ItemStack>> byDay) {
+    private RewardTable(JavaPlugin plugin, Map<Integer, List<RewardEntry>> byDay) {
+        this.plugin = plugin;
         this.byDay = byDay;
     }
 
+    private record RewardEntry(ItemStack vanilla, String adminShopId) {
+        ItemStack create(JavaPlugin plugin) {
+            return adminShopId == null ? vanilla.clone() : AdminShopReward.create(plugin, adminShopId);
+        }
+    }
+
+    static final class UnavailableException extends RuntimeException {
+        UnavailableException(String message) { super(message); }
+    }
+
     static RewardTable load(JavaPlugin plugin, ConfigurationSection section) {
-        Map<Integer, List<ItemStack>> byDay = new HashMap<>();
+        Map<Integer, List<RewardEntry>> byDay = new HashMap<>();
         if (section == null) {
             plugin.getLogger().warning("config.yml に rewards がありません。報酬を配れません。");
-            return new RewardTable(byDay);
+            return new RewardTable(plugin, byDay);
         }
 
         for (String key : section.getKeys(false)) {
@@ -41,9 +53,9 @@ final class RewardTable {
                 continue;
             }
 
-            List<ItemStack> stacks = new ArrayList<>();
+            List<RewardEntry> stacks = new ArrayList<>();
             for (Map<?, ?> entry : section.getMapList(key)) {
-                ItemStack stack = toStack(plugin, day, entry);
+                RewardEntry stack = toEntry(plugin, day, entry);
                 if (stack != null) {
                     stacks.add(stack);
                 }
@@ -58,10 +70,19 @@ final class RewardTable {
                 plugin.getLogger().warning(day + "日目の報酬が設定されていません。その日は何も配りません。");
             }
         }
-        return new RewardTable(byDay);
+        return new RewardTable(plugin, byDay);
     }
 
-    private static ItemStack toStack(JavaPlugin plugin, int day, Map<?, ?> entry) {
+    private static RewardEntry toEntry(JavaPlugin plugin, int day, Map<?, ?> entry) {
+        Object product = entry.get("adminshop-item");
+        if (product != null) {
+            String id = String.valueOf(product);
+            if (!id.matches("[a-z0-9_]+") || entry.containsKey("material")) {
+                plugin.getLogger().warning(day + "日目の adminshop-item が不正です: " + id);
+                return null;
+            }
+            return new RewardEntry(null, id);
+        }
         Object rawMaterial = entry.get("material");
         if (rawMaterial == null) {
             plugin.getLogger().warning(day + "日目の報酬に material がありません。読み飛ばします。");
@@ -77,18 +98,18 @@ final class RewardTable {
         if (rawAmount instanceof Number number) {
             amount = Math.max(1, number.intValue());
         }
-        return new ItemStack(material, amount);
+        return new RewardEntry(new ItemStack(material, amount), null);
     }
 
     /** その日のマスの報酬。渡すたびに複製を返すので、呼び出し側が変えても表は壊れない。 */
     List<ItemStack> forDay(int day) {
-        List<ItemStack> stacks = byDay.get(day);
+        List<RewardEntry> stacks = byDay.get(day);
         if (stacks == null) {
             return List.of();
         }
         List<ItemStack> copies = new ArrayList<>(stacks.size());
-        for (ItemStack stack : stacks) {
-            copies.add(stack.clone());
+        for (RewardEntry stack : stacks) {
+            copies.add(stack.create(plugin));
         }
         return copies;
     }
