@@ -33,4 +33,4 @@ for line in output.splitlines():
         print(line, flush=True)
 if result.returncode or 'PHONE_PROBE_PASS' not in output or 'PHONE_PROBE_FAIL' in output:
     raise SystemExit('FAILED: ' + str(work / 'smoke.log'))
-print('PASS: smartphone distribution, app shortcuts, feedback input, item model and categories. Logs: ' + str(work))
+print('PASS: first-join-only distribution, app shortcuts, feedback input, item model and categories. Logs: ' + str(work))

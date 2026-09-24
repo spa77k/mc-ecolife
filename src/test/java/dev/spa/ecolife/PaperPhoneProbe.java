@@ -11,6 +11,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -23,10 +24,14 @@ public final class PaperPhoneProbe extends JavaPlugin {
 
     @Override public void onEnable() {
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            try { run(); getLogger().info("PHONE_PROBE_PASS"); }
-            catch (Throwable error) { getLogger().log(java.util.logging.Level.SEVERE, "PHONE_PROBE_FAIL", error); }
-            finally { Bukkit.shutdown(); }
+            try { run(); }
+            catch (Throwable error) { fail(error); }
         }, 60);
+    }
+
+    private void fail(Throwable error) {
+        getLogger().log(java.util.logging.Level.SEVERE, "PHONE_PROBE_FAIL", error);
+        Bukkit.shutdown();
     }
 
     private static Object field(Object owner, String name) throws Exception {
@@ -36,6 +41,7 @@ public final class PaperPhoneProbe extends JavaPlugin {
     }
 
     private static final class User {
+        boolean playedBefore;
         Inventory storage = Bukkit.createInventory(null, 36);
         Inventory ender = Bukkit.createInventory(null, 27);
         Inventory menu;
@@ -51,6 +57,7 @@ public final class PaperPhoneProbe extends JavaPlugin {
         Player player = (Player) Proxy.newProxyInstance(Player.class.getClassLoader(),
                 new Class[]{Player.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "hasPermission", "isOnline" -> true;
+                    case "hasPlayedBefore" -> playedBefore;
                     case "getInventory" -> inventory;
                     case "getEnderChest" -> ender;
                     case "openInventory" -> { menu = (Inventory) args[0]; yield null; }
@@ -118,5 +125,25 @@ public final class PaperPhoneProbe extends JavaPlugin {
         for (int i = 0; i < 36; i++) user.storage.setItem(i, new ItemStack(Material.STONE, 64));
         give.invoke(service, user.player, false);
         check(user.storage.getItem(0).getType() == Material.STONE, "full inventory unchanged");
+
+        user.storage.clear();
+        Method join = service.getClass().getDeclaredMethod("onJoin", PlayerJoinEvent.class);
+        join.setAccessible(true);
+        user.playedBefore = true;
+        join.invoke(service, new PlayerJoinEvent(user.player, ""));
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            try {
+                check(user.storage.getItem(0) == null, "returning player not auto-issued");
+                user.playedBefore = false;
+                join.invoke(service, new PlayerJoinEvent(user.player, ""));
+                Bukkit.getScheduler().runTaskLater(this, () -> {
+                    try {
+                        check(user.storage.getItem(0) != null, "first join auto-issued");
+                        getLogger().info("PHONE_PROBE_PASS");
+                        Bukkit.shutdown();
+                    } catch (Throwable error) { fail(error); }
+                }, 45);
+            } catch (Throwable error) { fail(error); }
+        }, 45);
     }
 }
