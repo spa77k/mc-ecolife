@@ -39,6 +39,8 @@ public final class PaperPhoneProbe extends JavaPlugin {
         Inventory storage = Bukkit.createInventory(null, 36);
         Inventory ender = Bukkit.createInventory(null, 27);
         Inventory menu;
+        String lastCommand;
+        boolean conversationStarted;
         PlayerInventory inventory = (PlayerInventory) Proxy.newProxyInstance(PlayerInventory.class.getClassLoader(),
                 new Class[]{PlayerInventory.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getContents" -> storage.getContents();
@@ -52,6 +54,8 @@ public final class PaperPhoneProbe extends JavaPlugin {
                     case "getInventory" -> inventory;
                     case "getEnderChest" -> ender;
                     case "openInventory" -> { menu = (Inventory) args[0]; yield null; }
+                    case "performCommand" -> { lastCommand = (String) args[0]; yield true; }
+                    case "beginConversation" -> { conversationStarted = true; yield true; }
                     case "getUniqueId" -> UUID.nameUUIDFromBytes("phone-probe".getBytes());
                     case "getName" -> "PhoneProbe";
                     case "hashCode" -> 42;
@@ -83,11 +87,33 @@ public final class PaperPhoneProbe extends JavaPlugin {
         give.invoke(service, user.player, false);
         check(user.storage.getItem(1) == null, "no duplicate distribution");
         plugin.getCommand("phone").execute(user.player, "phone", new String[0]);
-        check(user.menu != null && user.menu.getItem(13).getType() == Material.GOLD_INGOT, "auction prominent");
+        check(user.menu != null && user.menu.getItem(12).getType() == Material.GOLD_INGOT, "Spazon prominent");
+        check(user.menu.getItem(10).getType() == Material.IRON_PICKAXE, "Spa Job app");
+        check(user.menu.getItem(14).getType() == Material.PAPER, "Spa Mail app");
+        check(user.menu.getItem(16).getType() == Material.FILLED_MAP, "SpaMap app");
         Map<Integer, Consumer<Player>> actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
-        for (int slot : new int[]{10, 12, 14, 16}) check(actions.containsKey(slot), "category " + slot);
+        actions.get(12).accept(user.player);
+        check(user.menu.getItem(11).getType() == Material.GOLD_INGOT, "auction in Spazon");
+        check(user.menu.getItem(15).getType() == Material.EMERALD, "admin shop in Spazon");
+        actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        actions.get(15).accept(user.player);
+        check("shop".equals(user.lastCommand), "admin shop shortcut");
+        plugin.getCommand("phone").execute(user.player, "phone", new String[0]);
+        actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        actions.get(14).accept(user.player);
+        check(user.conversationStarted, "Spa Mail input");
+        plugin.getCommand("phone").execute(user.player, "phone", new String[0]);
+        actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        actions.get(22).accept(user.player);
+        actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
         actions.get(10).accept(user.player);
         check(user.menu.getItem(13).getType() == Material.PAPER, "trade category has contracts");
+        check(user.menu.getItem(21).getType() == Material.GOLD_BLOCK, "balance ranking");
+        actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        actions.get(22).accept(user.player);
+        actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        actions.get(12).accept(user.player);
+        check(user.menu.getItem(18).getType() == Material.LIME_WOOL, "teleport requests");
         user.storage.clear();
         for (int i = 0; i < 36; i++) user.storage.setItem(i, new ItemStack(Material.STONE, 64));
         give.invoke(service, user.player, false);

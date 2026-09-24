@@ -12,6 +12,10 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.conversations.ConversationContext;
+import org.bukkit.conversations.ConversationFactory;
+import org.bukkit.conversations.Prompt;
+import org.bukkit.conversations.StringPrompt;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -31,7 +35,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 /** よく使う機能への入口。実際の操作は各プラグインのプレイヤーコマンドに委ねる。 */
 final class PhoneService implements Listener, CommandExecutor {
-    private enum Page { HOME, TRADE, TRAVEL, PLAY, HELP, SET_HOME }
+    private enum Page { HOME, SPAZON, MORE, TRADE, TRAVEL, PLAY, HELP, SET_HOME }
 
     private static final class PhoneMenu implements InventoryHolder {
         private Inventory inventory;
@@ -43,11 +47,18 @@ final class PhoneService implements Listener, CommandExecutor {
     private final JavaPlugin plugin;
     private final NamespacedKey marker;
     private final NamespacedKey model;
+    private final ConversationFactory feedbackFactory;
 
     PhoneService(JavaPlugin plugin) {
         this.plugin = plugin;
         marker = new NamespacedKey(plugin, "phone");
         model = new NamespacedKey("ecolife", "smartphone");
+        feedbackFactory = new ConversationFactory(plugin).withModality(false).withLocalEcho(false)
+                .withTimeout(120).withEscapeSequence("cancel").withFirstPrompt(new FeedbackPrompt())
+                .addConversationAbandonedListener(event -> {
+                    if (!event.gracefulExit() && event.getContext().getForWhom() instanceof Player player && player.isOnline())
+                        player.sendMessage("Spa Mailの入力を終了しました。");
+                });
     }
 
     @EventHandler
@@ -153,12 +164,21 @@ final class PhoneService implements Listener, CommandExecutor {
         holder.inventory = Bukkit.createInventory(holder, 27, Component.text("スマホ - " + title(page)));
         switch (page) {
             case HOME -> {
-                command(holder, 13, Material.GOLD_INGOT, "オークション", "出品・入札・受け取り", "ah");
+                command(holder, 10, Material.IRON_PICKAXE, "Spa Job", "職業一覧を開く", "jobs browse");
+                page(holder, 12, Material.GOLD_INGOT, "Spazon", "オークションとアドミンショップ", Page.SPAZON);
+                item(holder, 14, Material.PAPER, "Spa Mail", "運営へフィードバックを送る", this::startFeedback);
+                command(holder, 16, Material.FILLED_MAP, "SpaMap", "ロビーに戻る", "lobby");
+                page(holder, 22, Material.CHEST, "その他の機能", "移動・記録・案内もここから", Page.MORE);
+            }
+            case SPAZON -> {
+                command(holder, 11, Material.GOLD_INGOT, "オークション", "プレイヤーの出品を見る", "ah");
+                command(holder, 15, Material.EMERALD, "アドミンショップ", "運営ショップを開く", "shop");
+            }
+            case MORE -> {
                 page(holder, 10, Material.EMERALD, "売り買い", "依頼所・ショップ・所持金も見る", Page.TRADE);
                 page(holder, 12, Material.COMPASS, "移動", "ロビー・ランダム移動・ホーム", Page.TRAVEL);
                 page(holder, 14, Material.EXPERIENCE_BOTTLE, "遊びと記録", "職業・レベル・招待・ポスター", Page.PLAY);
                 page(holder, 16, Material.BOOK, "案内と相談", "遊び方・ルール・フィードバック", Page.HELP);
-                item(holder, 22, Material.CLOCK, "スマホ", "各アイコンから機能を選べます", null);
             }
             case TRADE -> {
                 command(holder, 10, Material.GOLD_INGOT, "オークション", "出品を見て、入札・購入する", "ah");
@@ -171,6 +191,7 @@ final class PhoneService implements Listener, CommandExecutor {
                 command(holder, 18, Material.NAME_TAG, "自分の出品", "出品中のアイテムを確認", "ah my");
                 command(holder, 19, Material.IRON_INGOT, "入札中", "自分の入札を確認", "ah bids");
                 command(holder, 20, Material.WRITTEN_BOOK, "自分の依頼", "依頼の進み具合を確認", "irai my");
+                command(holder, 21, Material.GOLD_BLOCK, "所持金ランキング", "サーバー内の順位を見る", "balancetop");
             }
             case TRAVEL -> {
                 command(holder, 10, Material.COMPASS, "ロビーへ戻る", "戦闘中は移動できません", "lobby");
@@ -179,6 +200,11 @@ final class PhoneService implements Listener, CommandExecutor {
                 page(holder, 13, Material.WHITE_BED, "ホームを登録", "現在地をホームにする（100S）", Page.SET_HOME);
                 command(holder, 14, Material.OAK_DOOR, "案内所", "資源・建築ワールドへ行く", "menu");
                 help(holder, 15, Material.MAP, "2か所目のホーム", "番号を指定して使う", "/sethome 2、/home 2");
+                help(holder, 16, Material.PLAYER_HEAD, "相手へ移動を申請", "相手の名前を指定する", "/tpa <名前>");
+                help(holder, 17, Material.ENDER_EYE, "相手を呼ぶ申請", "相手の名前を指定する", "/tpahere <名前>");
+                command(holder, 18, Material.LIME_WOOL, "移動申請を許可", "届いた申請を受ける", "tpaccept");
+                command(holder, 19, Material.RED_WOOL, "移動申請を拒否", "届いた申請を断る", "tpdeny");
+                command(holder, 20, Material.BARRIER, "自分の申請を取消", "送った申請を取り消す", "tpacancel");
             }
             case PLAY -> {
                 command(holder, 9, Material.IRON_PICKAXE, "職業を選ぶ", "仕事の一覧から就職する", "jobs browse");
@@ -191,28 +217,34 @@ final class PhoneService implements Listener, CommandExecutor {
                 command(holder, 16, Material.PAINTING, "ポスター", "画像を選んで飾る", "poster");
                 command(holder, 17, Material.OAK_DOOR, "案内所", "初心者向けの5項目", "menu");
                 command(holder, 18, Material.EMERALD_ORE, "今日の職業クエスト", "仕事の目標を確認する", "jobs quests");
+                command(holder, 19, Material.DIAMOND, "職業ランキング", "仕事の順位を見る", "jobs top");
             }
             case HELP -> {
                 command(holder, 10, Material.BOOK, "遊び方", "最初にやることを確認", "guide");
                 command(holder, 11, Material.WRITTEN_BOOK, "ルール", "サーバーのルールを確認", "rules");
-                help(holder, 12, Material.FEATHER, "運営へ伝える", "要望・不具合を送る", "/feedback <内容>");
+                item(holder, 12, Material.FEATHER, "運営へ伝える", "要望・不具合を送る", this::startFeedback);
                 help(holder, 13, Material.CHEST, "ショップの作り方", "チェスト・樽を左クリック", "ショップ作成は100S。/qs browse で一覧");
                 help(holder, 14, Material.GOLDEN_SHOVEL, "土地保護の使い方", "金のシャベルで範囲を選ぶ", "/claimshovel で受け取れます");
                 command(holder, 15, Material.OAK_DOOR, "案内所", "ワールド移動・職業・目標", "menu");
+                help(holder, 16, Material.PAPER, "個別メッセージ", "相手の名前と内容を入力", "/msg <名前> <内容>");
+                help(holder, 17, Material.GOLDEN_SHOVEL, "土地の共有", "相手に建築権限を渡す", "/trust <名前>、解除は /untrust <名前>");
             }
             case SET_HOME -> {
                 command(holder, 13, Material.GREEN_WOOL, "登録する", "現在地をホームに登録（100S）", "sethome");
                 page(holder, 15, Material.BARRIER, "戻る", "登録せず移動画面へ", Page.TRAVEL);
             }
         }
-        if (page != Page.HOME && page != Page.SET_HOME)
-            page(holder, 22, Material.ARROW, "トップへ戻る", "スマホの最初の画面", Page.HOME);
+        if (page == Page.SPAZON || page == Page.MORE)
+            page(holder, 22, Material.ARROW, "トップへ戻る", "アプリの一覧", Page.HOME);
+        else if (page != Page.HOME && page != Page.SET_HOME)
+            page(holder, 22, Material.ARROW, "その他へ戻る", "カテゴリ一覧", Page.MORE);
         player.openInventory(holder.inventory);
     }
 
     private String title(Page page) {
         return switch (page) {
-            case HOME -> "ホーム"; case TRADE -> "売り買い"; case TRAVEL -> "移動";
+            case HOME -> "アプリ"; case SPAZON -> "Spazon"; case MORE -> "その他";
+            case TRADE -> "売り買い"; case TRAVEL -> "移動";
             case PLAY -> "遊びと記録"; case HELP -> "案内と相談"; case SET_HOME -> "ホーム登録の確認";
         };
     }
@@ -239,5 +271,28 @@ final class PhoneService implements Listener, CommandExecutor {
 
     private void help(PhoneMenu menu, int slot, Material material, String title, String lore, String help) {
         item(menu, slot, material, title, lore, player -> player.sendMessage(title + ": " + help));
+    }
+
+    private void startFeedback(Player player) {
+        player.sendMessage("Spa Mail: 内容をチャットに入力してください。cancel で中止できます。");
+        player.beginConversation(feedbackFactory.buildConversation(player));
+    }
+
+    private static final class FeedbackPrompt extends StringPrompt {
+        @Override public String getPromptText(ConversationContext context) {
+            return "運営へ送る内容を入力してください（5～500文字、120秒以内）。";
+        }
+
+        @Override public Prompt acceptInput(ConversationContext context, String input) {
+            if (!(context.getForWhom() instanceof Player player)) return Prompt.END_OF_CONVERSATION;
+            String message = input == null ? "" : input.replace('\n', ' ').replace('\r', ' ').trim();
+            if (message.length() < 5 || message.length() > 500) {
+                player.sendMessage("5～500文字で入力してください。");
+                return this;
+            }
+            if (!player.performCommand("feedback " + message))
+                player.sendMessage("フィードバック機能は現在利用できません。");
+            return Prompt.END_OF_CONVERSATION;
+        }
     }
 }
