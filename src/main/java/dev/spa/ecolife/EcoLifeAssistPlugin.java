@@ -14,6 +14,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
     private dev.spa.ecolife.poster.PosterService posters;
     private dev.spa.ecolife.rtp.RtpService rtp;
+    private PhoneService phone;
 
     private BonusConfig bonusConfig;
     private BonusStore store;
@@ -36,6 +37,9 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         startNotify();
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
+        phone = new PhoneService(this);
+        getServer().getPluginManager().registerEvents(phone, this);
+        register("phone", phone, null);
 
         try {
             invites = new dev.spa.ecolife.invite.InviteService(this);

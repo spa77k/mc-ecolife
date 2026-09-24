@@ -4,9 +4,12 @@ main: dev.spa.ecolife.EcoLifeAssistPlugin
 api-version: "26.1.2"
 softdepend: [Vault, McLevel, AdminShop]
 author: spa
-description: ログインボーナス・友達招待・Discord通知・ポスター。
+description: ログインボーナス・友達招待・Discord通知・ポスター・スマホ。
 
 commands:
+  phone:
+    description: スマホを開く・受け取る
+    usage: /phone [get]
   rtp:
     description: 安全な地点へランダムに移動する
     usage: /rtp [world <ワールド>|player <名前> <ワールド>]
@@ -25,6 +28,9 @@ commands:
     usage: /ecolife <reload|info|reset|notify status|notify test>
 
 permissions:
+  ecolife.phone:
+    description: スマホを使う
+    default: true
   ecolife.rtp:
     description: 現在のワールドでランダムテレポートする
     default: true

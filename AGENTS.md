@@ -60,3 +60,9 @@
 - 2026-09-24の指定: 14マス目をAdminShop製の「帰還の護符」1個に差し替える。商品IDは `return_charm`。同梱設定と `../spsmc-infra/plugins/EcoLifeAssist/config.yml` を揃える。
 - AdminShopが生成した効果データ付きの本物だけを渡す。未導入・停止・商品欠落・連携失敗時は14マス目の受け取りと記録を保留する。復旧後は `/daily` で再試行できる。
 - 変更時はAdminShopもビルドし、`python3 scripts/test-daily-adminshop-paper.py` で隔離Paperを確認する。待受は `127.0.0.1:25582`。本番反映は別途明示依頼が必要。
+
+## スマホ
+
+- 2026-09-24の指定: 右クリックで開く配布アイテムに、一般プレイヤー向けの主要機能をまとめる。オークションを目立つ位置に置く。テクスチャもJava版・統合版用に用意する。
+- 配布・GUI・操作は `docs/phone.md` を参照。既存機能のプレイヤー権限を維持し、管理者コマンドは載せない。
+- 変更時は `mvn -B package` と `python3 scripts/test-phone-paper.py` で検証する。隔離Paperは `target/phone-paper-smoke`、待受は `127.0.0.1:25583`。実クライアント確認と区別する。
