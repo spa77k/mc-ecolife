@@ -55,10 +55,6 @@
 - EssentialsX 自体のホーム機能・設定・保存済みデータは `../spsmc-infra` の管理範囲であり、この削除では変更しない。
 - コマンド所有者の確認には `python3 scripts/test-home-paper.py` を使う。隔離Paperは `target/home-paper-smoke`、待受は `127.0.0.1:25581`。
 
-## Paper 26.2 の検証履歴
-
-- 2026-09-24 に未コミット変更を含む作業ツリーをローカル Docker の Paper 26.2 build 128 / Java 25 で確認した。条件・結果・未確認範囲は `docs/paper-26.2-local-test.md` を参照する。この記録だけで公開済み JAR や本番構成の 26.2 対応を保証しない。
-
 ## ログインボーナスとAdminShop
 
 - 2026-09-24の指定: 14マス目をAdminShop製の「帰還の護符」1個に差し替える。商品IDは `return_charm`。同梱設定と `../spsmc-infra/plugins/EcoLifeAssist/config.yml` を揃える。
