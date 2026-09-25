@@ -22,6 +22,8 @@
 
 金額が発生するホーム登録は確認画面を挟む。`Spa Mail` はチャット入力を会話モードで受け取り、既存の `/feedback` コマンドへ渡す。移動画面の「相手へ移動を申請」「相手を呼ぶ申請」はオンラインの相手を一覧から選び、`/tpa`・`/tpahere` を実行する。申請の許可・拒否・取消も同じ画面から操作する。送金など相手や金額が必要なその他の操作はコマンドの使い方を表示する。管理者コマンドは載せない。既存の `/menu` からもスマホ画面を開ける。
 
+スマホを手に持ったまま「オークションに出品」を選んだ場合は出品操作を開始せず、持ち替えを案内する。AuctionHouse 側でもスマホの識別データを確認して出品開始・確定を拒否する。出品したい物を手に持ち替えてから `/ah sell` を実行する。
+
 ## テクスチャ
 
 `assets/phone/smartphone.png` が共通の32×32ドット絵。`python3 scripts/build-phone-packs.py` でJava用 `target/ecolife-phone-java.zip` と統合版用 `target/ecolife-phone-bedrock.mcpack` を生成する。Javaパックは `ecolife:smartphone` のアイテムモデル、統合版はGeyserのカスタムアイテムマッピングで時計からスマホへ変換する。Javaパックの対象はMinecraft 26.1（リソースパック形式84）。

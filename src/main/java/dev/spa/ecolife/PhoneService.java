@@ -169,7 +169,7 @@ final class PhoneService implements Listener, CommandExecutor {
             }
             case TRADE -> {
                 command(holder, 10, Material.GOLD_INGOT, "オークション", "出品を見て、入札・購入する", "ah");
-                command(holder, 11, Material.WRITABLE_BOOK, "オークションに出品", "手に売りたい物を持って選ぶ", "ah sell");
+                item(holder, 11, Material.WRITABLE_BOOK, "オークションに出品", "手に売りたい物を持って選ぶ  /ah sell", this::sellAuctionItem);
                 command(holder, 12, Material.CHEST, "オークション保管庫", "落札品・返却品を受け取る", "ah vault");
                 command(holder, 13, Material.PAPER, "依頼所", "依頼を探す・作る・受ける", "irai");
                 command(holder, 14, Material.EMERALD, "プレイヤーショップ", "ショップ一覧を開く", "qs browse");
@@ -301,6 +301,14 @@ final class PhoneService implements Listener, CommandExecutor {
     private void startFeedback(Player player) {
         player.sendMessage("Spa Mail: 内容をチャットに入力してください。cancel で中止できます。");
         player.beginConversation(feedbackFactory.buildConversation(player));
+    }
+
+    private void sellAuctionItem(Player player) {
+        if (isPhone(player.getInventory().getItemInMainHand())) {
+            player.sendMessage("スマホは出品できません。売りたい物を手に持ち替えてから /ah sell を実行してください。");
+            return;
+        }
+        if (!player.performCommand("ah sell")) player.sendMessage("この機能は現在利用できません。 /ah sell");
     }
 
     private static final class FeedbackPrompt extends StringPrompt {
