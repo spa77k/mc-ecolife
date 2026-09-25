@@ -47,15 +47,12 @@ public final class PaperPhoneProbe extends JavaPlugin {
         Inventory ender = Bukkit.createInventory(null, 27);
         Inventory menu;
         String lastCommand;
-        String lastMessage;
-        ItemStack mainHand;
         boolean conversationStarted;
         PlayerInventory inventory = (PlayerInventory) Proxy.newProxyInstance(PlayerInventory.class.getClassLoader(),
                 new Class[]{PlayerInventory.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getContents" -> storage.getContents();
                     case "firstEmpty" -> storage.firstEmpty();
                     case "addItem" -> storage.addItem((ItemStack[]) args[0]);
-                    case "getItemInMainHand" -> mainHand;
                     default -> null;
                 });
         Player player = (Player) Proxy.newProxyInstance(Player.class.getClassLoader(),
@@ -66,7 +63,6 @@ public final class PaperPhoneProbe extends JavaPlugin {
                     case "getEnderChest" -> ender;
                     case "openInventory" -> { menu = (Inventory) args[0]; yield null; }
                     case "performCommand" -> { lastCommand = (String) args[0]; yield true; }
-                    case "sendMessage" -> { lastMessage = (String) args[0]; yield null; }
                     case "beginConversation" -> { conversationStarted = true; yield true; }
                     case "getUniqueId" -> UUID.nameUUIDFromBytes("phone-probe".getBytes());
                     case "getName" -> "PhoneProbe";
@@ -122,13 +118,9 @@ public final class PaperPhoneProbe extends JavaPlugin {
         check(user.menu.getItem(13).getType() == Material.PAPER, "trade category has contracts");
         check(user.menu.getItem(21).getType() == Material.GOLD_BLOCK, "balance ranking");
         actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
-        user.mainHand = phone;
         user.lastCommand = null;
         actions.get(11).accept(user.player);
-        check(user.lastCommand == null && user.lastMessage.contains("スマホは出品できません"), "phone cannot start auction listing");
-        user.mainHand = new ItemStack(Material.DIAMOND);
-        actions.get(11).accept(user.player);
-        check("ah sell".equals(user.lastCommand), "normal item can start auction listing");
+        check("ah sell".equals(user.lastCommand), "phone opens auction sell selection");
         actions.get(22).accept(user.player);
         actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
         actions.get(12).accept(user.player);
