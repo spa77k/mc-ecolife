@@ -1,5 +1,6 @@
 package dev.spa.ecolife;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 /** よく使う機能への入口。実際の操作は各プラグインのプレイヤーコマンドに委ねる。 */
 final class PhoneService implements Listener, CommandExecutor {
-    private enum Page { HOME, SPAZON, MORE, TRADE, TRAVEL, PLAY, HELP, SET_HOME }
+    private enum Page { HOME, SPAZON, MORE, TRADE, TRAVEL, TPA_TARGETS, TPAHERE_TARGETS, PLAY, HELP, SET_HOME }
 
     private static final class PhoneMenu implements InventoryHolder {
         private Inventory inventory;
@@ -142,6 +143,10 @@ final class PhoneService implements Listener, CommandExecutor {
     }
 
     private void open(Player player, Page page) {
+        open(player, page, 0);
+    }
+
+    private void open(Player player, Page page, int pageIndex) {
         PhoneMenu holder = new PhoneMenu();
         holder.inventory = Bukkit.createInventory(holder, 27, Component.text("スマホ - " + title(page)));
         switch (page) {
@@ -182,11 +187,18 @@ final class PhoneService implements Listener, CommandExecutor {
                 page(holder, 13, Material.WHITE_BED, "ホームを登録", "現在地をホームにする（100S）", Page.SET_HOME);
                 command(holder, 14, Material.OAK_DOOR, "案内所", "資源・建築ワールドへ行く", "menu");
                 help(holder, 15, Material.MAP, "2か所目のホーム", "番号を指定して使う", "/sethome 2、/home 2");
-                help(holder, 16, Material.PLAYER_HEAD, "相手へ移動を申請", "相手の名前を指定する", "/tpa <名前>");
-                help(holder, 17, Material.ENDER_EYE, "相手を呼ぶ申請", "相手の名前を指定する", "/tpahere <名前>");
+                page(holder, 16, Material.PLAYER_HEAD, "相手へ移動を申請", "オンラインの相手を選ぶ", Page.TPA_TARGETS);
+                page(holder, 17, Material.ENDER_EYE, "相手を呼ぶ申請", "オンラインの相手を選ぶ", Page.TPAHERE_TARGETS);
                 command(holder, 18, Material.LIME_WOOL, "移動申請を許可", "届いた申請を受ける", "tpaccept");
                 command(holder, 19, Material.RED_WOOL, "移動申請を拒否", "届いた申請を断る", "tpdeny");
                 command(holder, 20, Material.BARRIER, "自分の申請を取消", "送った申請を取り消す", "tpacancel");
+            }
+            case TPA_TARGETS, TPAHERE_TARGETS -> {
+                List<? extends Player> targets = Bukkit.getOnlinePlayers().stream()
+                        .filter(target -> !target.getUniqueId().equals(player.getUniqueId()))
+                        .sorted(Comparator.comparing(Player::getName, String.CASE_INSENSITIVE_ORDER))
+                        .toList();
+                populateTeleportTargets(holder, page, pageIndex, targets);
             }
             case PLAY -> {
                 command(holder, 9, Material.IRON_PICKAXE, "職業を選ぶ", "仕事の一覧から就職する", "jobs browse");
@@ -218,15 +230,46 @@ final class PhoneService implements Listener, CommandExecutor {
         }
         if (page == Page.SPAZON || page == Page.MORE)
             page(holder, 22, Material.ARROW, "トップへ戻る", "アプリの一覧", Page.HOME);
-        else if (page != Page.HOME && page != Page.SET_HOME)
+        else if (page != Page.HOME && page != Page.SET_HOME
+                && page != Page.TPA_TARGETS && page != Page.TPAHERE_TARGETS)
             page(holder, 22, Material.ARROW, "その他へ戻る", "カテゴリ一覧", Page.MORE);
         player.openInventory(holder.inventory);
+    }
+
+    private void populateTeleportTargets(PhoneMenu holder, Page page, int pageIndex, List<? extends Player> targets) {
+        String command = page == Page.TPA_TARGETS ? "tpa" : "tpahere";
+        int lastPage = Math.max(0, (targets.size() - 1) / 18);
+        int currentPage = Math.max(0, Math.min(pageIndex, lastPage));
+        int start = currentPage * 18;
+        for (int i = start; i < Math.min(start + 18, targets.size()); i++) {
+            Player target = targets.get(i);
+            item(holder, i - start, Material.PLAYER_HEAD, target.getName(),
+                    "選ぶと /" + command + " " + target.getName() + " を送信", requester -> {
+                        if (!target.isOnline()) {
+                            requester.sendMessage("相手はオフラインになりました。もう一度選んでください。");
+                            open(requester, page, currentPage);
+                            return;
+                        }
+                        if (!requester.performCommand(command + " " + target.getName()))
+                            requester.sendMessage("移動申請は現在利用できません。");
+                    });
+        }
+        if (targets.isEmpty())
+            item(holder, 13, Material.BARRIER, "相手がいません", "オンラインのプレイヤーがいません", null);
+        if (currentPage > 0)
+            item(holder, 18, Material.ARROW, "前のページ", "相手の一覧に戻る",
+                    requester -> open(requester, page, currentPage - 1));
+        if (currentPage < lastPage)
+            item(holder, 26, Material.ARROW, "次のページ", "相手の一覧を続けて見る",
+                    requester -> open(requester, page, currentPage + 1));
+        page(holder, 22, Material.ARROW, "移動画面へ戻る", "申請せずに戻る", Page.TRAVEL);
     }
 
     private String title(Page page) {
         return switch (page) {
             case HOME -> "アプリ"; case SPAZON -> "Spazon"; case MORE -> "その他";
             case TRADE -> "売り買い"; case TRAVEL -> "移動";
+            case TPA_TARGETS -> "移動先を選ぶ"; case TPAHERE_TARGETS -> "呼ぶ相手を選ぶ";
             case PLAY -> "遊びと記録"; case HELP -> "案内と相談"; case SET_HOME -> "ホーム登録の確認";
         };
     }

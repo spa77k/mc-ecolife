@@ -10,7 +10,7 @@ root = pathlib.Path(__file__).resolve().parents[1]
 work = root / 'target/phone-paper-smoke'
 source = root / 'server-data'
 java = os.environ.get('JAVA_BIN', '/opt/homebrew/opt/openjdk@25/bin/java')
-subprocess.run(['mvn', '-B', 'package'], cwd=root, check=True)
+subprocess.run(['mvn', '-B', 'clean', 'package', '-Dmaven.compiler.fork=true'], cwd=root, check=True)
 if work.exists():
     shutil.rmtree(work)
 (work / 'plugins').mkdir(parents=True)
@@ -33,4 +33,4 @@ for line in output.splitlines():
         print(line, flush=True)
 if result.returncode or 'PHONE_PROBE_PASS' not in output or 'PHONE_PROBE_FAIL' in output:
     raise SystemExit('FAILED: ' + str(work / 'smoke.log'))
-print('PASS: first-join-only distribution, app shortcuts, feedback input, item model and categories. Logs: ' + str(work))
+print('PASS: first-join-only distribution, app shortcuts, feedback input, item model, categories and teleport GUI actions. Logs: ' + str(work))

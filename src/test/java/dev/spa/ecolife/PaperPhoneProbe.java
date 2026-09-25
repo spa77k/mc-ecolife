@@ -2,6 +2,7 @@ package dev.spa.ecolife;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -121,6 +122,16 @@ public final class PaperPhoneProbe extends JavaPlugin {
         actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
         actions.get(12).accept(user.player);
         check(user.menu.getItem(18).getType() == Material.LIME_WOOL, "teleport requests");
+        actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        actions.get(18).accept(user.player);
+        check("tpaccept".equals(user.lastCommand), "accept from GUI");
+        actions.get(19).accept(user.player);
+        check("tpdeny".equals(user.lastCommand), "deny from GUI");
+        actions.get(20).accept(user.player);
+        check("tpacancel".equals(user.lastCommand), "cancel from GUI");
+        actions.get(16).accept(user.player);
+        check(user.menu.getItem(13).getType() == Material.BARRIER, "empty target list");
+        testTeleportTargets(service, user);
         user.storage.clear();
         for (int i = 0; i < 36; i++) user.storage.setItem(i, new ItemStack(Material.STONE, 64));
         give.invoke(service, user.player, false);
@@ -145,5 +156,30 @@ public final class PaperPhoneProbe extends JavaPlugin {
                 }, 45);
             } catch (Throwable error) { fail(error); }
         }, 45);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void testTeleportTargets(Object service, User user) throws Exception {
+        Class<?> pageType = Class.forName("dev.spa.ecolife.PhoneService$Page");
+        Class<?> menuType = Class.forName("dev.spa.ecolife.PhoneService$PhoneMenu");
+        Method populate = service.getClass().getDeclaredMethod("populateTeleportTargets", menuType, pageType, int.class, List.class);
+        populate.setAccessible(true);
+        Player target = (Player) Proxy.newProxyInstance(Player.class.getClassLoader(), new Class[]{Player.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getName" -> "Friend";
+                    case "isOnline" -> true;
+                    default -> null;
+                });
+        for (Object page : pageType.getEnumConstants()) {
+            String type = page.toString();
+            if (!type.equals("TPA_TARGETS") && !type.equals("TPAHERE_TARGETS")) continue;
+            Object holder = user.menu.getHolder();
+            populate.invoke(service, holder, page, 0, List.of(target));
+            Map<Integer, Consumer<Player>> actions = (Map<Integer, Consumer<Player>>) field(holder, "actions");
+            check(user.menu.getItem(0).getType() == Material.PLAYER_HEAD, "target selection item");
+            actions.get(0).accept(user.player);
+            check((type.equals("TPA_TARGETS") ? "tpa Friend" : "tpahere Friend").equals(user.lastCommand),
+                    "target command from GUI");
+        }
     }
 }
