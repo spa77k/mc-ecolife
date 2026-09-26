@@ -8,7 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public record RtpConfig(boolean enabled, int centerX, int centerZ, int minRadius, int maxRadius,
                         int minY, int maxY, int netherMaxY, int maxAttempts,
-                        int cooldownSeconds, int delaySeconds, Set<String> disabledWorlds) {
+                        int cooldownSeconds, int delaySeconds, int price, Set<String> disabledWorlds) {
 
     public static RtpConfig load(JavaPlugin plugin) {
         java.io.File file = new java.io.File(plugin.getDataFolder(), "rtp.yml");
@@ -24,7 +24,8 @@ public record RtpConfig(boolean enabled, int centerX, int centerZ, int minRadius
                 yaml.getInt("min-y", 0), yaml.getInt("max-y", 320), yaml.getInt("nether-max-y", 120),
                 Math.max(1, Math.min(100, yaml.getInt("max-attempts", 32))),
                 Math.max(0, yaml.getInt("cooldown-seconds", 600)),
-                Math.max(0, yaml.getInt("delay-seconds", 5)), Set.copyOf(disabled));
+                Math.max(0, yaml.getInt("delay-seconds", 5)),
+                Math.max(0, yaml.getInt("price", 100)), Set.copyOf(disabled));
     }
 
     public boolean allows(String world) {

@@ -9,6 +9,7 @@ import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import net.milkbowl.vault.economy.Economy;
 
 /** 実Paperのワールドとチャンクを使うRTP検証。Playerだけ決定的なテスト用アダプタ。 */
 public final class PaperRtpProbe extends JavaPlugin {
@@ -16,6 +17,8 @@ public final class PaperRtpProbe extends JavaPlugin {
     private Location location;
     private Player player;
     private RtpService service;
+    private boolean failTeleport;
+    private Economy economy;
 
     @Override public void onEnable() {
         Bukkit.getScheduler().runTaskLater(this, this::begin, 60L);
@@ -31,6 +34,7 @@ public final class PaperRtpProbe extends JavaPlugin {
             var field = eco.getClass().getDeclaredField("rtp");
             field.setAccessible(true);
             service = (RtpService) field.get(eco);
+            economy = Bukkit.getServicesManager().getRegistration(Economy.class).getProvider();
             World world = Bukkit.getWorlds().getFirst();
             verifyHazards(world);
             location = world.getSpawnLocation();
@@ -43,6 +47,7 @@ public final class PaperRtpProbe extends JavaPlugin {
                         case "getLocation" -> location.clone();
                         case "isOnline", "hasPermission" -> true;
                         case "teleportAsync" -> {
+                            if (failTeleport) yield CompletableFuture.completedFuture(false);
                             location = ((Location) args[0]).clone();
                             teleports++;
                             yield CompletableFuture.completedFuture(true);
@@ -56,9 +61,11 @@ public final class PaperRtpProbe extends JavaPlugin {
                         }
                     });
             if (Boolean.getBoolean("probe.restart")) {
+                check(economy.getBalance(player) == 100, "paid balance survives restart");
                 command.execute(player, "rtp", new String[0]);
                 Bukkit.getScheduler().runTaskLater(this, () -> verifyRestart(world), 5L);
             } else {
+                check(economy.getBalance(player) == 0, "initial balance zero");
                 command.execute(player, "rtp", new String[0]);
                 Bukkit.getScheduler().runTaskLater(this, () -> checkAndSchedule(world), 10L);
             }
@@ -84,12 +91,40 @@ public final class PaperRtpProbe extends JavaPlugin {
             check(world.getBlockAt(x, y + 1, z).isPassable(), "passable head");
             check(new java.io.File(Bukkit.getPluginManager().getPlugin("EcoLifeAssist").getDataFolder(),
                     "rtp-cooldowns.yml").isFile(), "cooldown persisted");
+            check(new java.io.File(Bukkit.getPluginManager().getPlugin("EcoLifeAssist").getDataFolder(),
+                    "rtp-free-used.yml").isFile(), "first free use persisted");
+            check(economy.getBalance(player) == 0, "first use free");
             Bukkit.getPluginCommand("ecolifeassist:rtp").execute(player, "rtp", new String[0]);
             check(teleports == 1, "cooldown blocks repeat");
+            clearCooldown();
+            Bukkit.getPluginCommand("ecolifeassist:rtp").execute(player, "rtp", new String[0]);
+            check(teleports == 1, "insufficient balance blocks paid RTP");
+            check(economy.depositPlayer(player, 200).transactionSuccess(), "fund player");
+            failTeleport = true;
+            Bukkit.getPluginCommand("ecolifeassist:rtp").execute(player, "rtp", new String[0]);
+            Bukkit.getScheduler().runTaskLater(this, () -> verifyFailure(world), 250L);
+        } catch (Throwable error) { fail(error); }
+    }
+
+    private void verifyFailure(World world) {
+        try {
+            check(teleports == 1, "failed teleport does not move");
+            check(economy.getBalance(player) == 200, "failed teleport refunded");
+            failTeleport = false;
+            Bukkit.getPluginCommand("ecolifeassist:rtp").execute(player, "rtp", new String[0]);
+            Bukkit.getScheduler().runTaskLater(this, () -> verifyPaid(world), 250L);
+        } catch (Throwable error) { fail(error); }
+    }
+
+    private void verifyPaid(World world) {
+        try {
+            check(teleports == 2, "paid RTP teleported");
+            check(economy.getBalance(player) == 100, "100S charged once");
             check(service.start(player, world, true), "admin bypass accepted");
             Bukkit.getScheduler().runTaskLater(this, () -> {
                 try {
-                    check(teleports == 2, "admin bypass teleported");
+                    check(teleports == 3, "admin bypass teleported");
+                    check(economy.getBalance(player) == 100, "admin bypass free");
                     pass();
                 } catch (Throwable error) { fail(error); }
             }, 100L);
@@ -99,14 +134,30 @@ public final class PaperRtpProbe extends JavaPlugin {
     private void verifyRestart(World world) {
         try {
             check(teleports == 0, "cooldown survives restart");
+            clearCooldown();
+            Bukkit.getPluginCommand("ecolifeassist:rtp").execute(player, "rtp", new String[0]);
+            Bukkit.getScheduler().runTaskLater(this, () -> verifyRestartPaid(world), 250L);
+        } catch (Throwable error) { fail(error); }
+    }
+
+    private void verifyRestartPaid(World world) {
+        try {
+            check(teleports == 1, "paid RTP after restart");
+            check(economy.getBalance(player) == 0, "free use not restored after restart");
             check(service.start(player, world, true), "admin bypass after restart");
             Bukkit.getScheduler().runTaskLater(this, () -> {
                 try {
-                    check(teleports == 1, "admin teleport after restart");
+                    check(teleports == 2, "admin teleport after restart");
                     pass();
                 } catch (Throwable error) { fail(error); }
             }, 100L);
         } catch (Throwable error) { fail(error); }
+    }
+
+    private void clearCooldown() throws Exception {
+        var field = RtpService.class.getDeclaredField("cooldowns");
+        field.setAccessible(true);
+        ((java.util.Map<?, ?>) field.get(service)).clear();
     }
 
     private static void check(boolean condition, String message) {

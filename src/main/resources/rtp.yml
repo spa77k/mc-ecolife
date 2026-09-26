@@ -10,4 +10,5 @@ nether-max-y: 120
 max-attempts: 32
 cooldown-seconds: 600
 delay-seconds: 5
+price: 100
 disabled-worlds: [prison, creative]

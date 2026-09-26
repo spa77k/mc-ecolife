@@ -3,7 +3,9 @@ package dev.spa.ecolife.rtp;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
@@ -20,13 +22,16 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class RtpService {
     private final JavaPlugin plugin;
     private final File cooldownFile;
+    private final File freeUseFile;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
+    private final Set<UUID> freeUsed = new HashSet<>();
     private final Map<UUID, Request> pending = new HashMap<>();
     private RtpConfig config;
 
     public RtpService(JavaPlugin plugin) {
         this.plugin = plugin;
         this.cooldownFile = new File(plugin.getDataFolder(), "rtp-cooldowns.yml");
+        this.freeUseFile = new File(plugin.getDataFolder(), "rtp-free-used.yml");
         YamlConfiguration saved = YamlConfiguration.loadConfiguration(cooldownFile);
         long now = System.currentTimeMillis();
         for (String key : saved.getKeys(false)) {
@@ -35,6 +40,14 @@ public final class RtpService {
                 if (until > now) cooldowns.put(UUID.fromString(key), until);
             } catch (IllegalArgumentException ignored) {
                 plugin.getLogger().warning("不正なRTPクールダウン記録を無視しました: " + key);
+            }
+        }
+        YamlConfiguration freeSaved = YamlConfiguration.loadConfiguration(freeUseFile);
+        for (String key : freeSaved.getKeys(false)) {
+            try {
+                if (freeSaved.getBoolean(key)) freeUsed.add(UUID.fromString(key));
+            } catch (IllegalArgumentException ignored) {
+                plugin.getLogger().warning("不正なRTP初回利用記録を無視しました: " + key);
             }
         }
         reload();
@@ -59,8 +72,18 @@ public final class RtpService {
             player.sendMessage("§e次に使えるまであと " + ((remaining + 999) / 1000) + " 秒です。");
             return false;
         }
-        Request request = new Request(player, world, administrative);
+        int price = !administrative && freeUsed.contains(id) ? config.price() : 0;
+        if (price > 0 && !RtpPayments.available()) {
+            player.sendMessage("§c経済連携を利用できないため、RTPを保留しました。");
+            return false;
+        }
+        if (price > 0 && !RtpPayments.canPay(player, price)) {
+            player.sendMessage("§cRTPには " + price + "S 必要です。");
+            return false;
+        }
+        Request request = new Request(player, world, administrative, price);
         pending.put(id, request);
+        if (!administrative) player.sendMessage(price == 0 ? "§e今回のRTPは無料です。" : "§e移動成功時に " + price + "S 支払います。");
         long delay = administrative ? 0 : config.delaySeconds() * 20L;
         if (delay > 0) player.sendMessage("§e" + config.delaySeconds() + "秒後に移動先を探します。");
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> search(request), delay);
@@ -68,10 +91,12 @@ public final class RtpService {
     }
 
     public void cancel(Player player) {
-        pending.remove(player.getUniqueId());
+        Request request = pending.remove(player.getUniqueId());
+        if (request != null) refund(request);
     }
 
     public void close() {
+        for (Request request : pending.values()) refund(request);
         pending.clear();
         saveCooldowns();
     }
@@ -126,22 +151,40 @@ public final class RtpService {
                 }
                 safe.setYaw(request.player.getLocation().getYaw());
                 safe.setPitch(request.player.getLocation().getPitch());
-                request.player.teleportAsync(safe).whenComplete((success, teleportError) -> {
-                    if (!plugin.isEnabled()) return;
-                    plugin.getServer().getScheduler().runTask(plugin, () -> {
-                        if (pending.get(request.player.getUniqueId()) != request) return;
-                        if (teleportError != null || !Boolean.TRUE.equals(success)) {
-                            finish(request, "§cテレポートに失敗しました。もう一度お試しください。");
-                            return;
-                        }
-                        if (!request.administrative) {
-                            cooldowns.put(request.player.getUniqueId(),
-                                    System.currentTimeMillis() + config.cooldownSeconds() * 1000L);
-                            saveCooldowns();
-                        }
-                        finish(request, "§a安全な地点へ移動しました。");
+                if (request.price > 0) {
+                    if (!RtpPayments.withdraw(request.player, request.price)) {
+                        finish(request, "§c決済できませんでした。残高と経済連携を確認してください。");
+                        return;
+                    }
+                    request.chargeHeld = true;
+                }
+                try {
+                    request.player.teleportAsync(safe).whenComplete((success, teleportError) -> {
+                        if (!plugin.isEnabled()) return;
+                        plugin.getServer().getScheduler().runTask(plugin, () -> {
+                            if (pending.get(request.player.getUniqueId()) != request) return;
+                            if (teleportError != null || !Boolean.TRUE.equals(success)) {
+                                refund(request);
+                                finish(request, "§cテレポートに失敗しました。もう一度お試しください。");
+                                return;
+                            }
+                            if (!request.administrative) {
+                                request.chargeHeld = false;
+                                if (freeUsed.add(request.player.getUniqueId())) saveFreeUsed();
+                                cooldowns.put(request.player.getUniqueId(),
+                                        System.currentTimeMillis() + config.cooldownSeconds() * 1000L);
+                                saveCooldowns();
+                            }
+                            finish(request, request.price > 0
+                                    ? "§a安全な地点へ移動しました。" + request.price + "S 支払いました。"
+                                    : "§a安全な地点へ移動しました。");
+                        });
                     });
-                });
+                } catch (RuntimeException e) {
+                    refund(request);
+                    plugin.getLogger().log(Level.WARNING, "RTPテレポートを開始できませんでした", e);
+                    finish(request, "§cテレポートに失敗しました。もう一度お試しください。");
+                }
             });
         });
     }
@@ -193,6 +236,25 @@ public final class RtpService {
         if (request.player.isOnline()) request.player.sendMessage(message);
     }
 
+    private void refund(Request request) {
+        if (!request.chargeHeld) return;
+        request.chargeHeld = false;
+        if (!RtpPayments.refund(request.player, request.price)) {
+            plugin.getLogger().severe("RTP決済の返金に失敗しました: " + request.player.getUniqueId()
+                    + " / " + request.price + "S。管理者による確認が必要です。");
+        }
+    }
+
+    private void saveFreeUsed() {
+        YamlConfiguration yaml = new YamlConfiguration();
+        freeUsed.forEach(id -> yaml.set(id.toString(), true));
+        try {
+            yaml.save(freeUseFile);
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.SEVERE, "RTP初回利用記録を保存できませんでした", e);
+        }
+    }
+
     private void saveCooldowns() {
         YamlConfiguration yaml = new YamlConfiguration();
         long now = System.currentTimeMillis();
@@ -210,13 +272,16 @@ public final class RtpService {
         final World world;
         final World originWorld;
         final boolean administrative;
+        final int price;
+        boolean chargeHeld;
         int attempts;
 
-        Request(Player player, World world, boolean administrative) {
+        Request(Player player, World world, boolean administrative, int price) {
             this.player = player;
             this.world = world;
             this.originWorld = player.getWorld();
             this.administrative = administrative;
+            this.price = price;
         }
     }
 }
