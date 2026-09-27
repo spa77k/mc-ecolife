@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 /** /ecolife 設定の再読み込みと受け取り状況の確認・取り消し。 */
 final class EcoLifeCommand implements CommandExecutor, TabCompleter {
 
-    private static final List<String> SUB_COMMANDS = List.of("reload", "info", "reset", "notify");
+    private static final List<String> SUB_COMMANDS = List.of("reload", "info", "reset", "notify", "automation");
     private static final List<String> NOTIFY_SUB_COMMANDS = List.of("status", "test");
 
     private final EcoLifeAssistPlugin plugin;
@@ -64,6 +64,7 @@ final class EcoLifeCommand implements CommandExecutor, TabCompleter {
                 reset(sender, args[1]);
             }
             case "notify" -> handleNotify(sender, args);
+            case "automation" -> handleAutomation(sender, args);
             default -> sendUsage(sender);
         }
         return true;
@@ -75,6 +76,24 @@ final class EcoLifeCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(Text.prefixed("&7/ecolife reset <名前> &f- 受け取り記録を消す"));
         sender.sendMessage(Text.prefixed("&7/ecolife notify status &f- Discord通知の状況を見る"));
         sender.sendMessage(Text.prefixed("&7/ecolife notify test &f- Discordへテスト通知を送る"));
+        sender.sendMessage(Text.prefixed("&7/ecolife automation status &f- 自動化装置の検出状況を見る"));
+        sender.sendMessage(Text.prefixed("&7/ecolife automation test &f- 運営用Webhookへテスト通知を送る"));
+    }
+
+    private void handleAutomation(CommandSender sender, String[] args) {
+        String sub = args.length < 2 ? "" : args[1].toLowerCase(Locale.ROOT);
+        switch (sub) {
+            case "status" -> {
+                sender.sendMessage(Text.prefixed("&f自動化装置の検出"));
+                for (String line : plugin.automation().statusLines()) {
+                    sender.sendMessage(Text.prefixed(line));
+                }
+            }
+            case "test" -> sender.sendMessage(Text.prefixed(plugin.automation().sendTest()
+                    ? "&aテスト通知をキューに積みました。"
+                    : "&c送信できませんでした。無効、またはURL未設定です。"));
+            default -> sender.sendMessage(Text.prefixed("&7使い方: /ecolife automation <status|test>"));
+        }
     }
 
     private void handleNotify(CommandSender sender, String[] args) {
@@ -179,7 +198,7 @@ final class EcoLifeCommand implements CommandExecutor, TabCompleter {
             }
             return filter(names, args[1]);
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("notify")) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("notify") || args[0].equalsIgnoreCase("automation"))) {
             return filter(NOTIFY_SUB_COMMANDS, args[1]);
         }
         return List.of();

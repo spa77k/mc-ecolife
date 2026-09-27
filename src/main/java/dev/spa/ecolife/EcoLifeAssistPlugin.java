@@ -24,6 +24,8 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     private NotifyService notifyService;
     private NotifyBridge notifyBridge;
 
+    private AutomationWatch automation;
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
@@ -35,6 +37,10 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         this.notifyService = new NotifyService(this);
         this.notifyBridge = new NotifyBridge(this, notifyService);
         startNotify();
+
+        automation = new AutomationWatch(this);
+        getServer().getPluginManager().registerEvents(automation, this);
+        automation.start(AutomationConfig.load(this));
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
         phone = new PhoneService(this);
@@ -97,6 +103,9 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         if (invites != null) {
             try { invites.close(); } catch (java.sql.SQLException e) { getLogger().log(java.util.logging.Level.SEVERE, "招待DBを閉じられませんでした", e); }
         }
+        if (automation != null) {
+            automation.close();
+        }
         if (notifyBridge != null) {
             notifyBridge.unregisterAll();
         }
@@ -151,6 +160,9 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         notifyService.stop();
         this.notifyConfig = NotifyConfig.load(this);
         startNotify();
+
+        automation.stop();
+        automation.start(AutomationConfig.load(this));
     }
 
     BonusConfig bonusConfig() {
@@ -175,5 +187,9 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
     NotifyBridge notifyBridge() {
         return notifyBridge;
+    }
+
+    AutomationWatch automation() {
+        return automation;
     }
 }

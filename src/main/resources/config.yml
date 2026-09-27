@@ -83,6 +83,51 @@ notify:
       min-interval-seconds: 60
       per-player-cooldown-seconds: 300
 
+# 全自動装置の疑いがある場所を、運営専用のDiscordへ知らせる。通知だけで、装置には手を出さない。
+#
+# ルールの基準は「プレイヤーがその場で操作しないと止まるか」。
+# 近くのプレイヤーが全員放置中（または誰もいない）なのに、搬送・回収・ピストン・
+# プレイヤー以外によるモブの死亡などが続いているチャンクを見つける。
+# 自分で倒すトラップや、ボタンを押している間だけ動く半自動装置は、操作した本人が
+# アクティブ扱いになるため対象にならない。
+# 一度通知した場所（ワールド＋チャンク）は plugins/EcoLifeAssist/automation.db に残し、二度と通知しない。
+automation-watch:
+  enabled: false
+
+  # 座標が載るため、一般プレイヤーが見るチャンネルとは別の運営専用Webhookにする。
+  # 未設定でも検出はサーバーログと automation.db に残し、設定後に未送信分を送る。
+  webhook-url: "${CFG_ECOLIFE_AUTOMATION_WEBHOOK}"
+  username: "自動化装置の検出"
+  avatar-url: ""
+
+  # このブロック数以内（水平距離）にアクティブなプレイヤーがいれば「操作中」とみなす。
+  radius-blocks: 64
+  # 最後の自発操作（ジャンプ・ダッシュ・スニーク・設置・破壊・右クリック・攻撃・インベントリ操作）から
+  # この秒数を過ぎたら放置中とみなす。McLevel のアクティブ判定と同じ60秒。
+  afk-seconds: 60
+
+  # 直近 window-minutes 分がすべて放置中で、そのうち min-active-minutes 分以上で動きがあり、
+  # 動きの点数の合計が min-score 以上なら通知する。
+  # 手で入れた荷物をホッパーが運び終えるまでの数分は拾わないよう、10分見てから判断する。
+  window-minutes: 10
+  min-active-minutes: 8
+  min-score: 200
+
+  # 動き1回あたりの点数。鉄トラップのように回路を使わない装置は、搬送・回収より
+  # 「プレイヤー以外によるモブの死亡」で見つかるため重くしている。
+  weights:
+    transfer: 1
+    pickup: 1
+    piston: 1
+    dispense: 1
+    mob-death: 10
+
+  # 検出しないワールド名。
+  excluded-worlds: []
+
+  # 集計の区切り（秒）。通常は60のまま使う。
+  check-interval-seconds: 60
+
 # 受け取ったときの演出。
 effects:
   title: true
