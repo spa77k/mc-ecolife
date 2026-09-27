@@ -165,8 +165,9 @@ Bukkitのカスタムイベント（`getNotifyKind()` および `getNotifyPlaceh
 サーバールール「全自動の装置は禁止、半自動はOK」の違反候補を見つけ、**運営専用の** Discord Webhook へ座標つきで通知します。通知だけで、装置の停止や撤去は行いません。
 
 - **判定**: 近くのプレイヤーが全員放置中（または誰もいない）なのに、ホッパー等の搬送・回収、ピストン、ディスペンサー・ドロッパー、プレイヤー以外によるモブの死亡が続いているチャンクを検出します。プレイヤーが自分で倒したモブや、ボタンを押している間だけ動く装置は対象外です。
-- **通知内容**: ワールドと座標、土地の持ち主（GriefPrevention）、近くのプレイヤー、直近の動きの内訳。
+- **通知内容**: ワールドと座標、BlueMapで開くリンク、土地の持ち主（GriefPrevention）、装置を置いた人と設置日時（CoreProtect）、近くのプレイヤー、直近の動きの内訳。各プラグインが無い場合はその欄を「不明」にして通知します。
 - **一度きり**: 通知した場所（ワールド＋チャンク）は `plugins/EcoLifeAssist/automation.db` に記録し、以後は通知しません。
+- **週次の集計**: SPSMCInsight が `automation.db` を読み取り専用で開き、週次の出力（`automation.jsonl`、`summary.json` の `automation`）に含めます。列名を変えるときは SPSMCInsight の `AutomationExport` も揃えます。
 - **設定**: `config.yml` の `automation-watch:`。既定は無効です。`webhook-url` は一般向け通知と分け、`${CFG_ECOLIFE_AUTOMATION_WEBHOOK}` を使います。URLが未設定でも検出はサーバーログとDBに残り、設定後に未送信分を送ります。
 - **確認**: `/ecolife automation status` で状況、`/ecolife automation test` でテスト送信。
 

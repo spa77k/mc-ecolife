@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """隔離Paperで自動化装置の検出・運営用Webhook通知・一度きりの通知を確認する。"""
 import http.server
+import json
 import os
 import pathlib
 import shutil
@@ -18,7 +19,7 @@ posts = []
 
 class Hook(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
-        posts.append(self.rfile.read(int(self.headers['Content-Length'])).decode())
+        posts.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
         self.send_response(204)
         self.end_headers()
 
@@ -40,6 +41,10 @@ for name in ('libraries', 'cache', 'versions'):
 shutil.copy2(source / 'paper-26.1.2-74.jar', work / 'paper.jar')
 shutil.copy2(source / 'eula.txt', work / 'eula.txt')
 shutil.copy2(root / 'target/ecolifeassist-1.0.0.jar', work / 'plugins/EcoLifeAssist.jar')
+# 設置者の検索まで確かめるときは、本番と同じ CoreProtect のJARを指定する
+coreprotect = os.environ.get('COREPROTECT_JAR')
+if coreprotect:
+    shutil.copy2(coreprotect, work / 'plugins/CoreProtect.jar')
 config = (root / 'src/main/resources/config.yml').read_text()
 start = config.index('automation-watch:')
 end = config.index('\n# 受け取ったときの演出。')
@@ -47,6 +52,7 @@ config = config[:start] + f'''automation-watch:
   enabled: true
   webhook-url: "{hook}"
   username: "test"
+  bluemap-url: "https://map.example/"
   radius-blocks: 64
   afk-seconds: 60
   window-minutes: 3
@@ -58,7 +64,7 @@ config = config[:start] + f'''automation-watch:
 port = os.environ.get('AUTOMATION_TEST_PORT', '25584')
 (work / 'server.properties').write_text(f'server-ip=127.0.0.1\nserver-port={port}\nonline-mode=false\nview-distance=2\nsimulation-distance=2\nlevel-type=minecraft:flat\ngenerate-structures=false\nspawn-monsters=false\n')
 with zipfile.ZipFile(work / 'plugins/AutomationProbe.jar', 'w') as jar:
-    jar.writestr('plugin.yml', 'name: AutomationProbe\nversion: 1\nmain: dev.spa.ecolife.PaperAutomationProbe\napi-version: "26.1.2"\ndepend: [EcoLifeAssist]\n')
+    jar.writestr('plugin.yml', 'name: AutomationProbe\nversion: 1\nmain: dev.spa.ecolife.PaperAutomationProbe\napi-version: "26.1.2"\ndepend: [EcoLifeAssist]\nsoftdepend: [CoreProtect]\n')
     for file in (root / 'target/test-classes/dev/spa/ecolife').glob('PaperAutomationProbe*.class'):
         jar.write(file, 'dev/spa/ecolife/' + file.name)
 
@@ -82,15 +88,22 @@ def check(ok, message):
 
 run('first')
 check(len(posts) == 2, f'1回目は2か所を1回ずつ通知する（実際 {len(posts)} 件）')
-hopper = [p for p in posts if 'X 165 Y 69 Z 165' in p]
-mob = [p for p in posts if 'モブの死亡' in p and '（チャンク -10, -10）' in p]
+contents = [p['content'] for p in posts]
+hopper = [p for p in contents if 'X 165 Y 69 Z 165' in p]
+mob = [p for p in contents if 'モブの死亡' in p and '（チャンク -10, -10）' in p]
 check(len(hopper) == 1 and 'ホッパー等の搬送' in hopper[0], 'ホッパーの座標と内訳が通知に入る')
 check(len(mob) == 1, 'プレイヤー以外によるモブの死亡が通知に入る')
-check(all('\\"parse\\":[]' in p or '"parse":[]' in p for p in posts), 'メンションを無効化している')
+check('[地図で見る](<https://map.example/#world:165:69:165:60:0:0.9:0:0:perspective>)' in hopper[0], 'BlueMapのリンクが入る')
+placer = '装置を置いた人: probe\\_user（' if coreprotect else '装置を置いた人: 不明（CoreProtect未導入）'
+check(placer in hopper[0], f'設置者の欄が入る（{placer}）')
+check('装置を置いた人: 不明（装置のブロックなし）' in mob[0], 'モブだけの場所は設置者を調べない')
+check(all(p['allowed_mentions'] == {'parse': []} for p in posts), 'メンションを無効化している')
 db = sqlite3.connect(work / 'plugins/EcoLifeAssist/automation.db')
-rows = db.execute('SELECT world, chunk_x, chunk_z, sent FROM detections ORDER BY chunk_x').fetchall()
+rows = db.execute('SELECT world, chunk_x, chunk_z, sent, transfer, mob_death, map_url, placer, placed_at FROM detections ORDER BY chunk_x').fetchall()
 db.close()
 check(sorted((r[1], r[2], r[3]) for r in rows) == [(-10, -10, 1), (10, 10, 1)], f'DBに送信済みで記録される {rows}')
+check(rows[0][5] > 0 and rows[1][4] > 0 and rows[1][6].startswith('https://map.example/#world:'), f'内訳と地図URLが列に入る {rows}')
+check((rows[1][7], rows[1][8] > 0) == (('probe_user', True) if coreprotect else ('', False)), f'設置者は名前と時刻に分けて入る {rows}')
 
 run('second')
 check(len(posts) == 2, f'再起動後も記録済みの場所は通知しない（実際 {len(posts)} 件）')

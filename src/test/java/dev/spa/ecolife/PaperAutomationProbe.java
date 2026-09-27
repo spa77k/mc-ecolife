@@ -26,6 +26,7 @@ public final class PaperAutomationProbe extends JavaPlugin {
             for (int i = 0; i < 27; i++) chest.getBlockInventory().setItem(i, new ItemStack(Material.COBBLESTONE, 64));
             world.getBlockAt(165, 69, 165).setType(Material.HOPPER);
             world.getBlockAt(165, 68, 165).setType(Material.CHEST);
+            logPlacement(world.getBlockAt(165, 69, 165));
             // モブ：チャンク(-10,-10)。1秒ごとにプレイヤー以外の原因で倒す
             world.addPluginChunkTicket(-10, -10, this);
             getLogger().info("AUTOMATION_PROBE_READY");
@@ -41,5 +42,18 @@ public final class PaperAutomationProbe extends JavaPlugin {
             getLogger().info("AUTOMATION_PROBE_DONE");
             Bukkit.shutdown();
         }, seconds * 20);
+    }
+
+    /** CoreProtect があれば、ホッパーを probe_user が置いた記録を残す。 */
+    private void logPlacement(Block block) {
+        org.bukkit.plugin.Plugin coreProtect = Bukkit.getPluginManager().getPlugin("CoreProtect");
+        if (coreProtect == null) return;
+        try {
+            Object api = coreProtect.getClass().getMethod("getAPI").invoke(coreProtect);
+            api.getClass().getMethod("logPlacement", String.class, org.bukkit.Location.class,
+                    org.bukkit.block.data.BlockData.class).invoke(api, "probe_user", block.getLocation(), block.getBlockData());
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

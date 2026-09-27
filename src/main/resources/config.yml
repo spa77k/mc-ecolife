@@ -90,7 +90,9 @@ notify:
 # プレイヤー以外によるモブの死亡などが続いているチャンクを見つける。
 # 自分で倒すトラップや、ボタンを押している間だけ動く半自動装置は、操作した本人が
 # アクティブ扱いになるため対象にならない。
+# 通知には座標・BlueMapのリンク・土地の持ち主（GriefPrevention）・装置を置いた人（CoreProtect）を載せる。
 # 一度通知した場所（ワールド＋チャンク）は plugins/EcoLifeAssist/automation.db に残し、二度と通知しない。
+# 記録は SPSMCInsight が週次の出力（automation.jsonl）に含める。
 automation-watch:
   enabled: false
 
@@ -99,6 +101,10 @@ automation-watch:
   webhook-url: "${CFG_ECOLIFE_AUTOMATION_WEBHOOK}"
   username: "自動化装置の検出"
   avatar-url: ""
+
+  # 通知に「地図で見る」リンクを付ける BlueMap の公開URL。空にするとリンクを付けない。
+  # 地図IDは BlueMap のAPIからワールドごとに引く。
+  bluemap-url: "https://map.spa77.works/"
 
   # このブロック数以内（水平距離）にアクティブなプレイヤーがいれば「操作中」とみなす。
   radius-blocks: 64

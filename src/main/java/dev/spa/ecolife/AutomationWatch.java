@@ -77,6 +77,13 @@ final class AutomationWatch implements Listener {
     private record ChunkKey(UUID world, int x, int z) {
     }
 
+    /** 持ち主・設置者の調べた結果。name は分かったときだけ入り、display は通知に出す文。 */
+    private record Who(String name, long placedAt, String display) {
+        static Who unknown(String display) {
+            return new Who("", 0L, display);
+        }
+    }
+
     /** 1分ごとの集計。counts は Kind ごとの回数。 */
     private record Minute(int[] counts, int score, boolean unattended) {
     }
@@ -85,6 +92,8 @@ final class AutomationWatch implements Listener {
         int[] current = new int[Kind.values().length];
         final ArrayDeque<Minute> minutes = new ArrayDeque<>();
         final Map<Long, Integer> spots = new HashMap<>();
+        /** 装置のブロック（ホッパー・ピストンなど）の位置だけ。設置者を調べる対象にする。 */
+        final Map<Long, Integer> blockSpots = new HashMap<>();
     }
 
     private final JavaPlugin plugin;
@@ -313,7 +322,11 @@ final class AutomationWatch implements Listener {
         }
         ChunkState state = states.computeIfAbsent(key, k -> new ChunkState());
         state.current[kind.ordinal()]++;
-        state.spots.merge(pack(x, y, z), 1, Integer::sum);
+        long packed = pack(x, y, z);
+        state.spots.merge(packed, 1, Integer::sum);
+        if (kind != Kind.MOB_DEATH) {
+            state.blockSpots.merge(packed, 1, Integer::sum);
+        }
     }
 
     // --- 見回り ---
@@ -402,19 +415,27 @@ final class AutomationWatch implements Listener {
         return true;
     }
 
+    /**
+     * 通知の中身をそろえて記録・送信する。CoreProtect の検索はDBを引くため送信用スレッドで行い、
+     * 結果が戻ってからメインスレッドで記録する。二重検出を防ぐため、場所は先に通知済み扱いにする。
+     */
     private void report(ChunkKey key, ChunkState state, AutomationConfig config) {
         World world = Bukkit.getWorld(key.world());
         if (world == null) {
             return;
         }
-        long spot = state.spots.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
+        notified.add(AutomationStore.key(world.getName(), key.x(), key.z()));
+        ignored.add(key);
+
+        long spot = hottest(state.spots)
                 .orElse(pack((key.x() << 4) + 8, world.getSeaLevel(), (key.z() << 4) + 8));
         int x = unpackX(spot);
         int y = unpackY(spot);
         int z = unpackZ(spot);
         Location location = new Location(world, x, y, z);
+        Block deviceBlock = hottest(state.blockSpots)
+                .map(p -> world.getBlockAt(unpackX(p), unpackY(p), unpackZ(p)))
+                .orElse(null);
 
         int[] totals = new int[Kind.values().length];
         for (Minute minute : state.minutes) {
@@ -442,31 +463,113 @@ final class AutomationWatch implements Listener {
                 nearby.add(NotifyText.sanitize(player.getName(), 32));
             }
         }
+        Who owner = claimOwner(location);
+        String mapUrl = mapUrl(config, world, x, y, z);
 
-        String worldName = NotifyText.sanitize(world.getName(), 40);
-        String content = "🚨 **自動化装置の疑い**\n"
-                + "場所: " + worldName + " / X " + x + " Y " + y + " Z " + z
-                + "（チャンク " + key.x() + ", " + key.z() + "）\n"
-                + "土地の持ち主: " + NotifyText.sanitize(claimOwner(location), 40) + "\n"
-                + "近くのプレイヤー: " + (nearby.isEmpty() ? "なし" : String.join("、", nearby) + "（全員放置中）") + "\n"
-                + "直近" + config.windowMinutes() + "分の動き: " + breakdown + "\n"
-                + "現地や /co inspect で確認してください。この場所は今後通知しません。";
+        sender.submit(() -> {
+            Who placer = deviceBlock == null ? Who.unknown("不明（装置のブロックなし）") : placer(deviceBlock);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (store == null) {
+                    return;
+                }
+                String content = "🚨 **自動化装置の疑い**\n"
+                        + "場所: " + NotifyText.sanitize(world.getName(), 40) + " / X " + x + " Y " + y + " Z " + z
+                        + "（チャンク " + key.x() + ", " + key.z() + "）"
+                        + (mapUrl.isEmpty() ? "" : " [地図で見る](<" + mapUrl + ">)") + "\n"
+                        + "土地の持ち主: " + NotifyText.sanitize(owner.display(), 40) + "\n"
+                        + "装置を置いた人: " + NotifyText.sanitize(placer.display(), 60) + "\n"
+                        + "近くのプレイヤー: " + (nearby.isEmpty() ? "なし" : String.join("、", nearby) + "（全員放置中）") + "\n"
+                        + "直近" + config.windowMinutes() + "分の動き: " + breakdown + "\n"
+                        + "現地や /co inspect で確認してください。この場所は今後通知しません。";
+                long id;
+                try {
+                    id = store.insert(new AutomationStore.Detection(world.getName(), key.x(), key.z(), x, y, z,
+                            owner.name(), placer.name(), placer.placedAt(), mapUrl, totals, content));
+                } catch (SQLException e) {
+                    plugin.getLogger().log(Level.SEVERE, "自動化装置の検出を記録できませんでした。", e);
+                    return;
+                }
+                if (id < 0) {
+                    return;
+                }
+                plugin.getLogger().warning("自動化装置の疑い: " + world.getName() + " " + x + " " + y + " " + z
+                        + "（" + breakdown + "）");
+                send(id, content, config);
+            });
+        });
+    }
 
-        long id;
+    private static java.util.Optional<Long> hottest(Map<Long, Integer> spots) {
+        return spots.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey);
+    }
+
+    /** BlueMap でその座標を開くURL。地図IDは BlueMap のAPIから引き、取れなければワールド名を使う。 */
+    private static String mapUrl(AutomationConfig config, World world, int x, int y, int z) {
+        String base = config.bluemapUrl();
+        if (base == null || base.isBlank()) {
+            return "";
+        }
+        String mapId = world.getName();
+        Plugin bluemap = Bukkit.getPluginManager().getPlugin("BlueMap");
+        if (bluemap != null && bluemap.isEnabled()) {
+            try {
+                ClassLoader loader = bluemap.getClass().getClassLoader();
+                Class<?> apiClass = Class.forName("de.bluecolored.bluemap.api.BlueMapAPI", false, loader);
+                Class<?> worldClass = Class.forName("de.bluecolored.bluemap.api.BlueMapWorld", false, loader);
+                Class<?> mapClass = Class.forName("de.bluecolored.bluemap.api.BlueMapMap", false, loader);
+                java.util.Optional<?> api = (java.util.Optional<?>) apiClass.getMethod("getInstance").invoke(null);
+                if (api.isPresent()) {
+                    java.util.Optional<?> mapWorld = (java.util.Optional<?>) apiClass.getMethod("getWorld", Object.class)
+                            .invoke(api.get(), world);
+                    if (mapWorld.isPresent()) {
+                        java.util.Collection<?> maps = (java.util.Collection<?>) worldClass.getMethod("getMaps")
+                                .invoke(mapWorld.get());
+                        for (Object map : maps) {
+                            mapId = (String) mapClass.getMethod("getId").invoke(map);
+                            break;
+                        }
+                    }
+                }
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+                // ワールド名をそのまま地図IDとして使う
+            }
+        }
+        String trimmed = base.endsWith("/") ? base : base + "/";
+        return trimmed + "#" + mapId + ":" + x + ":" + y + ":" + z + ":60:0:0.9:0:0:perspective";
+    }
+
+    /** CoreProtect の記録から、そのブロックを最後に設置した人と日時。DBを引くのでメインスレッドで呼ばない。 */
+    private static Who placer(Block block) {
+        Plugin coreProtect = Bukkit.getPluginManager().getPlugin("CoreProtect");
+        if (coreProtect == null || !coreProtect.isEnabled()) {
+            return Who.unknown("不明（CoreProtect未導入）");
+        }
         try {
-            id = store.insert(world.getName(), key.x(), key.z(), x, y, z, content);
-        } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "自動化装置の検出を記録できませんでした。", e);
-            return;
+            ClassLoader loader = coreProtect.getClass().getClassLoader();
+            Object api = coreProtect.getClass().getMethod("getAPI").invoke(coreProtect);
+            Class<?> apiClass = Class.forName("net.coreprotect.CoreProtectAPI", false, loader);
+            if (!(boolean) apiClass.getMethod("isEnabled").invoke(api)) {
+                return Who.unknown("不明（CoreProtect停止中）");
+            }
+            Class<?> resultClass = Class.forName("net.coreprotect.api.result.ParseResult", false, loader);
+            List<?> rows = (List<?>) apiClass.getMethod("blockLookup", Block.class, int.class).invoke(api, block, 0);
+            Method parse = apiClass.getMethod("parseResult", String[].class);
+            for (Object row : rows) {
+                Object result = parse.invoke(api, (Object) row);
+                if ((int) resultClass.getMethod("getActionId").invoke(result) != 1) {
+                    continue;
+                }
+                String player = (String) resultClass.getMethod("getPlayer").invoke(result);
+                long seconds = ((Number) resultClass.getMethod("getTime").invoke(result)).longValue();
+                String when = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                        .withZone(java.time.ZoneId.of("Asia/Tokyo"))
+                        .format(java.time.Instant.ofEpochSecond(seconds));
+                return new Who(player, seconds, player + "（" + when + " に設置）");
+            }
+            return Who.unknown("記録なし");
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            return Who.unknown("不明");
         }
-        notified.add(AutomationStore.key(world.getName(), key.x(), key.z()));
-        ignored.add(key);
-        if (id < 0) {
-            return;
-        }
-        plugin.getLogger().warning("自動化装置の疑い: " + world.getName() + " " + x + " " + y + " " + z
-                + "（" + breakdown + "）");
-        send(id, content, config);
     }
 
     private void resendUnsent(AutomationConfig config) {
@@ -505,10 +608,10 @@ final class AutomationWatch implements Listener {
     }
 
     /** GriefPrevention の土地の持ち主。コンパイル時依存にしないため、公開APIをリフレクションで呼ぶ。 */
-    private static String claimOwner(Location location) {
+    private static Who claimOwner(Location location) {
         Plugin gp = Bukkit.getPluginManager().getPlugin("GriefPrevention");
         if (gp == null || !gp.isEnabled()) {
-            return "不明（GriefPrevention未導入）";
+            return Who.unknown("不明（GriefPrevention未導入）");
         }
         try {
             Object dataStore = gp.getClass().getField("dataStore").get(gp);
@@ -517,12 +620,12 @@ final class AutomationWatch implements Listener {
             Method getClaimAt = dataStore.getClass().getMethod("getClaimAt", Location.class, boolean.class, claimClass);
             Object claim = getClaimAt.invoke(dataStore, location, true, null);
             if (claim == null) {
-                return "なし（保護されていない場所）";
+                return Who.unknown("なし（保護されていない場所）");
             }
             Object owner = claim.getClass().getMethod("getOwnerName").invoke(claim);
-            return owner == null ? "不明" : owner.toString();
+            return owner == null ? Who.unknown("不明") : new Who(owner.toString(), 0L, owner.toString());
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
-            return "不明";
+            return Who.unknown("不明");
         }
     }
 

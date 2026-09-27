@@ -12,10 +12,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** 自動化装置の検出記録。1チャンクにつき1件だけ残し、記録済みの場所は二度と通知しない。メインスレッド専用。 */
+/**
+ * 自動化装置の検出記録。1チャンクにつき1件だけ残し、記録済みの場所は二度と通知しない。メインスレッド専用。
+ * SPSMCInsight が読み取り専用で開いて週次の出力に含めるため、列名を変えるときは両方を揃える。
+ */
 final class AutomationStore implements AutoCloseable {
 
     record Pending(long id, String content) {
+    }
+
+    /**
+     * 1件の検出。owner・placer は分からなければ空文字、placedAt は設置時刻（UNIX秒、不明なら0）。
+     * counts は AutomationWatch.Kind の順。
+     */
+    record Detection(String world, int chunkX, int chunkZ, int x, int y, int z,
+                     String owner, String placer, long placedAt, String mapUrl, int[] counts, String content) {
     }
 
     private final Connection db;
@@ -23,11 +34,14 @@ final class AutomationStore implements AutoCloseable {
     AutomationStore(Path path) throws SQLException {
         db = DriverManager.getConnection("jdbc:sqlite:" + path.toAbsolutePath());
         try (Statement s = db.createStatement()) {
-            s.execute("PRAGMA journal_mode=WAL");
+            // 書き込みは検出時だけでまれなため、他プラグインから読みやすい通常のジャーナルにする
             s.execute("PRAGMA busy_timeout=3000");
             s.execute("CREATE TABLE IF NOT EXISTS detections (id INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + " world TEXT NOT NULL, chunk_x INTEGER NOT NULL, chunk_z INTEGER NOT NULL,"
                     + " x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL,"
+                    + " owner TEXT NOT NULL, placer TEXT NOT NULL, placed_at INTEGER NOT NULL, map_url TEXT NOT NULL,"
+                    + " transfer INTEGER NOT NULL, pickup INTEGER NOT NULL, piston INTEGER NOT NULL,"
+                    + " dispense INTEGER NOT NULL, mob_death INTEGER NOT NULL,"
                     + " detected_at INTEGER NOT NULL, content TEXT NOT NULL, sent INTEGER NOT NULL DEFAULT 0,"
                     + " UNIQUE(world, chunk_x, chunk_z))");
         }
@@ -49,18 +63,26 @@ final class AutomationStore implements AutoCloseable {
     }
 
     /** 記録できたら採番したID、すでに記録済みなら -1。 */
-    long insert(String world, int chunkX, int chunkZ, int x, int y, int z, String content) throws SQLException {
+    long insert(Detection d) throws SQLException {
         try (PreparedStatement s = db.prepareStatement(
-                "INSERT OR IGNORE INTO detections (world, chunk_x, chunk_z, x, y, z, detected_at, content)"
-                        + " VALUES (?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
-            s.setString(1, world);
-            s.setInt(2, chunkX);
-            s.setInt(3, chunkZ);
-            s.setInt(4, x);
-            s.setInt(5, y);
-            s.setInt(6, z);
-            s.setLong(7, System.currentTimeMillis());
-            s.setString(8, content);
+                "INSERT OR IGNORE INTO detections (world, chunk_x, chunk_z, x, y, z, owner, placer, placed_at,"
+                        + " map_url, transfer, pickup, piston, dispense, mob_death, detected_at, content)"
+                        + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
+            s.setString(1, d.world());
+            s.setInt(2, d.chunkX());
+            s.setInt(3, d.chunkZ());
+            s.setInt(4, d.x());
+            s.setInt(5, d.y());
+            s.setInt(6, d.z());
+            s.setString(7, d.owner());
+            s.setString(8, d.placer());
+            s.setLong(9, d.placedAt());
+            s.setString(10, d.mapUrl());
+            for (int i = 0; i < 5; i++) {
+                s.setInt(11 + i, d.counts()[i]);
+            }
+            s.setLong(16, System.currentTimeMillis());
+            s.setString(17, d.content());
             if (s.executeUpdate() == 0) {
                 return -1L;
             }

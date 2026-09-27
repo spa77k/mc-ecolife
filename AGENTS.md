@@ -74,5 +74,7 @@
 - 2026-09-27の指定: ルール「全自動装置は禁止、半自動はOK」の違反候補を、運営専用のDiscord Webhookへ座標つきで通知する。通知だけにし、停止・撤去はしない。
 - 判定基準は「最後の仕上げ（収穫・キル・回収）をプレイヤー本人がその場でやっているか」。ボタン式の半自動装置や、自分で倒す鉄トラップは対象外。近くのプレイヤーが全員放置中（または不在）なのに、搬送・回収・ピストン・ディスペンサー・プレイヤー以外によるモブの死亡が続くチャンクを数える。
 - 一度通知した場所（ワールド＋チャンク）は `automation.db` に残し、二度と通知しない。
+- 通知にはBlueMapのリンク（`bluemap-url`、地図IDはBlueMap APIから取得）と、CoreProtectで調べた装置の設置者・設置日時を載せる。CoreProtectの検索は送信用スレッドで行い、メインスレッドで引かない。
+- `automation.db` は `../spsmc-insight` の `AutomationExport` が読み取り専用で開き、週次出力に含める。列を変えるときは両方を揃える。
 - Webhookは一般向けの `notify.webhook-url` と分け、`${CFG_ECOLIFE_AUTOMATION_WEBHOOK}` を使う。座標が載るため一般チャンネルへ流さない。
-- 変更時は `mvn -B package` と `python3 scripts/test-automation-paper.py` を実行する。隔離Paperは `target/automation-paper-smoke`、待受は既定で `127.0.0.1:25584`（`AUTOMATION_TEST_PORT` で変更）。放置していないプレイヤーがいる場合に通知しないことは、テスト用Playerでは未検証。
+- 変更時は `mvn -B package` と `python3 scripts/test-automation-paper.py` を実行する。隔離Paperは `target/automation-paper-smoke`、待受は既定で `127.0.0.1:25584`（`AUTOMATION_TEST_PORT` で変更）。設置者の検索まで確かめるときは `COREPROTECT_JAR` に本番と同じCoreProtectのJARを指定する。放置していないプレイヤーがいる場合に通知しないことは、テスト用Playerでは未検証。
