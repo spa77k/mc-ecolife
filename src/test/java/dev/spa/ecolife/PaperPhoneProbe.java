@@ -43,6 +43,7 @@ public final class PaperPhoneProbe extends JavaPlugin {
 
     private static final class User {
         boolean playedBefore;
+        boolean buildAccess = true;
         Inventory storage = Bukkit.createInventory(null, 36);
         Inventory ender = Bukkit.createInventory(null, 27);
         Inventory menu;
@@ -57,7 +58,8 @@ public final class PaperPhoneProbe extends JavaPlugin {
                 });
         Player player = (Player) Proxy.newProxyInstance(Player.class.getClassLoader(),
                 new Class[]{Player.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "hasPermission", "isOnline" -> true;
+                    case "hasPermission" -> !"multiverse.access.build".equals(args[0]) || buildAccess;
+                    case "isOnline" -> true;
                     case "hasPlayedBefore" -> playedBefore;
                     case "getInventory" -> inventory;
                     case "getEnderChest" -> ender;
@@ -126,6 +128,15 @@ public final class PaperPhoneProbe extends JavaPlugin {
         actions.get(12).accept(user.player);
         check(user.menu.getItem(18).getType() == Material.LIME_WOOL, "teleport requests");
         actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        actions.get(14).accept(user.player);
+        check("mv tp resource".equals(user.lastCommand), "resource world opens directly");
+        user.buildAccess = false;
+        user.lastCommand = null;
+        actions.get(21).accept(user.player);
+        check(user.lastCommand == null, "build world blocked before level 1");
+        user.buildAccess = true;
+        actions.get(21).accept(user.player);
+        check("mv tp build".equals(user.lastCommand), "build world opens directly after level 1");
         actions.get(18).accept(user.player);
         check("tpaccept".equals(user.lastCommand), "accept from GUI");
         actions.get(19).accept(user.player);

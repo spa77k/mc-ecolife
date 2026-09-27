@@ -185,13 +185,14 @@ final class PhoneService implements Listener, CommandExecutor {
                 command(holder, 11, Material.ENDER_PEARL, "ランダム移動", "安全な場所へ移動する", "rtp");
                 command(holder, 12, Material.RED_BED, "ホームへ帰る", "登録済みのホームへ移動", "home");
                 page(holder, 13, Material.WHITE_BED, "ホームを登録", "現在地をホームにする（100S）", Page.SET_HOME);
-                command(holder, 14, Material.OAK_DOOR, "案内所", "資源・建築ワールドへ行く", "menu");
+                world(holder, 14, Material.IRON_PICKAXE, "資源ワールドへ", "資源集めに行く", "resource", null);
                 help(holder, 15, Material.MAP, "2か所目のホーム", "番号を指定して使う", "/sethome 2、/home 2");
                 page(holder, 16, Material.PLAYER_HEAD, "相手へ移動を申請", "オンラインの相手を選ぶ", Page.TPA_TARGETS);
                 page(holder, 17, Material.ENDER_EYE, "相手を呼ぶ申請", "オンラインの相手を選ぶ", Page.TPAHERE_TARGETS);
                 command(holder, 18, Material.LIME_WOOL, "移動申請を許可", "届いた申請を受ける", "tpaccept");
                 command(holder, 19, Material.RED_WOOL, "移動申請を拒否", "届いた申請を断る", "tpdeny");
                 command(holder, 20, Material.BARRIER, "自分の申請を取消", "送った申請を取り消す", "tpacancel");
+                world(holder, 21, Material.CRAFTING_TABLE, "建築ワールドへ", "Lv1から入れます", "build", "multiverse.access.build");
             }
             case TPA_TARGETS, TPAHERE_TARGETS -> {
                 List<? extends Player> targets = Bukkit.getOnlinePlayers().stream()
@@ -209,7 +210,6 @@ final class PhoneService implements Listener, CommandExecutor {
                 command(holder, 14, Material.CLOCK, "ログインボーナス", "今月の進み具合を見る", "daily");
                 command(holder, 15, Material.PLAYER_HEAD, "友達招待", "招待コード・実績を見る", "invite");
                 command(holder, 16, Material.PAINTING, "ポスター", "画像を選んで飾る", "poster");
-                command(holder, 17, Material.OAK_DOOR, "案内所", "初心者向けの5項目", "menu");
                 command(holder, 18, Material.EMERALD_ORE, "今日の職業クエスト", "仕事の目標を確認する", "jobs quests");
                 command(holder, 19, Material.DIAMOND, "職業ランキング", "仕事の順位を見る", "jobs top");
             }
@@ -219,7 +219,6 @@ final class PhoneService implements Listener, CommandExecutor {
                 item(holder, 12, Material.FEATHER, "運営へ伝える", "要望・不具合を送る", this::startFeedback);
                 help(holder, 13, Material.CHEST, "ショップの作り方", "チェスト・樽を左クリック", "ショップ作成は100S。/qs browse で一覧");
                 help(holder, 14, Material.GOLDEN_SHOVEL, "土地保護の使い方", "金のシャベルで範囲を選ぶ", "/claimshovel で受け取れます");
-                command(holder, 15, Material.OAK_DOOR, "案内所", "ワールド移動・職業・目標", "menu");
                 help(holder, 16, Material.PAPER, "個別メッセージ", "相手の名前と内容を入力", "/msg <名前> <内容>");
                 help(holder, 17, Material.GOLDEN_SHOVEL, "土地の共有", "相手に建築権限を渡す", "/trust <名前>、解除は /untrust <名前>");
             }
@@ -288,6 +287,19 @@ final class PhoneService implements Listener, CommandExecutor {
     private void command(PhoneMenu menu, int slot, Material material, String title, String lore, String command) {
         item(menu, slot, material, title, lore + "  /" + command,
                 player -> { if (!player.performCommand(command)) player.sendMessage("この機能は現在利用できません。 /" + command); });
+    }
+
+    private void world(PhoneMenu menu, int slot, Material material, String title, String lore,
+                       String world, String permission) {
+        item(menu, slot, material, title, lore, player -> {
+            if (permission != null && !player.hasPermission(permission)) {
+                player.sendMessage("建築ワールドはLv1から入れます。（実プレイ30分＋進捗5個）");
+                player.sendMessage("進み具合は /level で確認できます。");
+                return;
+            }
+            if (!player.performCommand("mv tp " + world))
+                player.sendMessage("ワールドへ移動できませんでした。");
+        });
     }
 
     private void page(PhoneMenu menu, int slot, Material material, String title, String lore, Page page) {

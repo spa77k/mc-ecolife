@@ -10,6 +10,7 @@ root = pathlib.Path(__file__).resolve().parents[1]
 work = root / 'target/phone-paper-smoke'
 source = root / 'server-data'
 java = os.environ.get('JAVA_BIN', '/opt/homebrew/opt/openjdk@25/bin/java')
+port = int(os.environ.get('PHONE_TEST_PORT', '25583'))
 subprocess.run(['mvn', '-B', 'clean', 'package', '-Dmaven.compiler.fork=true'], cwd=root, check=True)
 if work.exists():
     shutil.rmtree(work)
@@ -20,7 +21,7 @@ for name in ('libraries', 'cache', 'versions'):
 shutil.copy2(source / 'paper-26.1.2-74.jar', work / 'paper.jar')
 shutil.copy2(source / 'eula.txt', work / 'eula.txt')
 shutil.copy2(root / 'target/ecolifeassist-1.0.0.jar', work / 'plugins/EcoLifeAssist.jar')
-(work / 'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25583\nonline-mode=false\nview-distance=2\nsimulation-distance=2\nlevel-type=minecraft:flat\ngenerate-structures=false\n')
+(work / 'server.properties').write_text(f'server-ip=127.0.0.1\nserver-port={port}\nonline-mode=false\nview-distance=2\nsimulation-distance=2\nlevel-type=minecraft:flat\ngenerate-structures=false\n')
 with zipfile.ZipFile(work / 'plugins/PhoneProbe.jar', 'w') as jar:
     jar.writestr('plugin.yml', 'name: PhoneProbe\nversion: 1\nmain: dev.spa.ecolife.PaperPhoneProbe\napi-version: "26.1.2"\ndepend: [EcoLifeAssist]\n')
     for file in (root / 'target/test-classes/dev/spa/ecolife').glob('PaperPhoneProbe*.class'):
