@@ -2,6 +2,7 @@ package dev.spa.ecolife.rtp;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -9,6 +10,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -85,9 +90,24 @@ public final class RtpService {
         pending.put(id, request);
         if (!administrative) player.sendMessage(price == 0 ? "§e今回のRTPは無料です。" : "§e移動成功時に " + price + "S 支払います。");
         long delay = administrative ? 0 : config.delaySeconds() * 20L;
-        if (delay > 0) player.sendMessage("§e" + config.delaySeconds() + "秒後に移動先を探します。");
+        if (delay > 0) {
+            player.sendMessage("§e" + config.delaySeconds() + "秒後に移動先を探します。");
+            countdown(request, config.delaySeconds());
+        }
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> search(request), delay);
         return true;
+    }
+
+    private void countdown(Request request, int seconds) {
+        if (!active(request)) return;
+        request.player.showTitle(Title.title(
+                Component.text(seconds, NamedTextColor.AQUA).decorate(TextDecoration.BOLD),
+                Component.text("ランダム移動まであと " + seconds + " 秒", NamedTextColor.WHITE),
+                Title.Times.times(Duration.ZERO, Duration.ofMillis(1200), Duration.ZERO)));
+        if (seconds > 1) {
+            plugin.getServer().getScheduler().runTaskLater(plugin,
+                    () -> countdown(request, seconds - 1), 20L);
+        }
     }
 
     public void cancel(Player player) {
@@ -112,8 +132,14 @@ public final class RtpService {
             pending.remove(request.player.getUniqueId(), request);
             return;
         }
+        if (request.attempts == 0) {
+            request.player.showTitle(Title.title(
+                    Component.text("移動先を探索中", NamedTextColor.AQUA).decorate(TextDecoration.BOLD),
+                    Component.text("安全な場所を探しています", NamedTextColor.WHITE),
+                    Title.Times.times(Duration.ofMillis(150), Duration.ofSeconds(5), Duration.ofMillis(250))));
+        }
         if (++request.attempts > config.maxAttempts()) {
-            finish(request, "§c安全な移動先が見つかりませんでした。しばらくしてから再試行してください。");
+            finish(request, "§c安全な移動先が見つかりませんでした。しばらくしてから再試行してください。", false);
             return;
         }
         int radius = config.maxRadius();
@@ -153,7 +179,7 @@ public final class RtpService {
                 safe.setPitch(request.player.getLocation().getPitch());
                 if (request.price > 0) {
                     if (!RtpPayments.withdraw(request.player, request.price)) {
-                        finish(request, "§c決済できませんでした。残高と経済連携を確認してください。");
+                        finish(request, "§c決済できませんでした。残高と経済連携を確認してください。", false);
                         return;
                     }
                     request.chargeHeld = true;
@@ -165,7 +191,7 @@ public final class RtpService {
                             if (pending.get(request.player.getUniqueId()) != request) return;
                             if (teleportError != null || !Boolean.TRUE.equals(success)) {
                                 refund(request);
-                                finish(request, "§cテレポートに失敗しました。もう一度お試しください。");
+                                finish(request, "§cテレポートに失敗しました。もう一度お試しください。", false);
                                 return;
                             }
                             if (!request.administrative) {
@@ -177,13 +203,13 @@ public final class RtpService {
                             }
                             finish(request, request.price > 0
                                     ? "§a安全な地点へ移動しました。" + request.price + "S 支払いました。"
-                                    : "§a安全な地点へ移動しました。");
+                                    : "§a安全な地点へ移動しました。", true);
                         });
                     });
                 } catch (RuntimeException e) {
                     refund(request);
                     plugin.getLogger().log(Level.WARNING, "RTPテレポートを開始できませんでした", e);
-                    finish(request, "§cテレポートに失敗しました。もう一度お試しください。");
+                    finish(request, "§cテレポートに失敗しました。もう一度お試しください。", false);
                 }
             });
         });
@@ -231,9 +257,16 @@ public final class RtpService {
         return true;
     }
 
-    private void finish(Request request, String message) {
+    private void finish(Request request, String message, boolean success) {
         pending.remove(request.player.getUniqueId(), request);
-        if (request.player.isOnline()) request.player.sendMessage(message);
+        if (!request.player.isOnline()) return;
+        request.player.sendMessage(message);
+        request.player.showTitle(Title.title(
+                Component.text(success ? "到着！" : "移動できませんでした",
+                        success ? NamedTextColor.GREEN : NamedTextColor.RED).decorate(TextDecoration.BOLD),
+                Component.text(success ? "安全な場所へ移動しました" : "詳しくはチャットを確認してください",
+                        NamedTextColor.WHITE),
+                Title.Times.times(Duration.ofMillis(150), Duration.ofSeconds(2), Duration.ofMillis(400))));
     }
 
     private void refund(Request request) {

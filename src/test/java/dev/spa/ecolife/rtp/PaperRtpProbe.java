@@ -1,6 +1,8 @@
 package dev.spa.ecolife.rtp;
 
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.bukkit.Bukkit;
@@ -10,6 +12,8 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import net.milkbowl.vault.economy.Economy;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.title.Title;
 
 /** 実Paperのワールドとチャンクを使うRTP検証。Playerだけ決定的なテスト用アダプタ。 */
 public final class PaperRtpProbe extends JavaPlugin {
@@ -19,6 +23,7 @@ public final class PaperRtpProbe extends JavaPlugin {
     private RtpService service;
     private boolean failTeleport;
     private Economy economy;
+    private final List<String> titles = new ArrayList<>();
 
     @Override public void onEnable() {
         Bukkit.getScheduler().runTaskLater(this, this::begin, 60L);
@@ -53,6 +58,11 @@ public final class PaperRtpProbe extends JavaPlugin {
                             yield CompletableFuture.completedFuture(true);
                         }
                         case "sendMessage" -> null;
+                        case "showTitle" -> {
+                            titles.add(PlainTextComponentSerializer.plainText()
+                                    .serialize(((Title) args[0]).title()));
+                            yield null;
+                        }
                         case "equals" -> proxy == args[0];
                         case "hashCode" -> id.hashCode();
                         default -> {
@@ -77,6 +87,7 @@ public final class PaperRtpProbe extends JavaPlugin {
     private void checkAndSchedule(World world) {
         try {
             check(teleports == 0, "five second delay is applied");
+            check(titles.contains("5"), "countdown title shown");
             Bukkit.getScheduler().runTaskLater(this, () -> verifyFirst(world), 300L);
         } catch (Throwable error) { fail(error); }
     }
@@ -84,6 +95,9 @@ public final class PaperRtpProbe extends JavaPlugin {
     private void verifyFirst(World world) {
         try {
             check(teleports == 1, "player teleported once");
+            check(titles.contains("1"), "countdown reaches one");
+            check(titles.contains("移動先を探索中"), "search title shown");
+            check(titles.contains("到着！"), "arrival title shown");
             check(location.getWorld() == world, "same world");
             int x = location.getBlockX(), y = location.getBlockY(), z = location.getBlockZ();
             check(world.getBlockAt(x, y - 1, z).isSolid(), "solid floor");
@@ -109,6 +123,7 @@ public final class PaperRtpProbe extends JavaPlugin {
     private void verifyFailure(World world) {
         try {
             check(teleports == 1, "failed teleport does not move");
+            check(titles.contains("移動できませんでした"), "failure title shown");
             check(economy.getBalance(player) == 200, "failed teleport refunded");
             failTeleport = false;
             Bukkit.getPluginCommand("ecolifeassist:rtp").execute(player, "rtp", new String[0]);
