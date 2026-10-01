@@ -87,6 +87,7 @@ def check(ok, message):
 
 
 run('first')
+check('AUTOMATION_PROBE_ACTIVITY 9/9' in (work / 'run-first.log').read_text(), '放置判定の操作イベントをすべて購読している')
 check(len(posts) == 2, f'1回目は2か所を1回ずつ通知する（実際 {len(posts)} 件）')
 contents = [p['content'] for p in posts]
 hopper = [p for p in contents if 'X 165 Y 69 Z 165' in p]

@@ -64,25 +64,13 @@ final class AutomationStore implements AutoCloseable {
 
     /** 記録できたら採番したID、すでに記録済みなら -1。 */
     long insert(Detection d) throws SQLException {
-        try (PreparedStatement s = db.prepareStatement(
+        int[] c = d.counts();
+        try (PreparedStatement s = prepare(
                 "INSERT OR IGNORE INTO detections (world, chunk_x, chunk_z, x, y, z, owner, placer, placed_at,"
                         + " map_url, transfer, pickup, piston, dispense, mob_death, detected_at, content)"
-                        + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS)) {
-            s.setString(1, d.world());
-            s.setInt(2, d.chunkX());
-            s.setInt(3, d.chunkZ());
-            s.setInt(4, d.x());
-            s.setInt(5, d.y());
-            s.setInt(6, d.z());
-            s.setString(7, d.owner());
-            s.setString(8, d.placer());
-            s.setLong(9, d.placedAt());
-            s.setString(10, d.mapUrl());
-            for (int i = 0; i < 5; i++) {
-                s.setInt(11 + i, d.counts()[i]);
-            }
-            s.setLong(16, System.currentTimeMillis());
-            s.setString(17, d.content());
+                        + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS,
+                d.world(), d.chunkX(), d.chunkZ(), d.x(), d.y(), d.z(), d.owner(), d.placer(), d.placedAt(),
+                d.mapUrl(), c[0], c[1], c[2], c[3], c[4], System.currentTimeMillis(), d.content())) {
             if (s.executeUpdate() == 0) {
                 return -1L;
             }
@@ -93,21 +81,17 @@ final class AutomationStore implements AutoCloseable {
     }
 
     void markSent(long id) throws SQLException {
-        try (PreparedStatement s = db.prepareStatement("UPDATE detections SET sent=1 WHERE id=?")) {
-            s.setLong(1, id);
+        try (PreparedStatement s = prepare("UPDATE detections SET sent=1 WHERE id=?", Statement.NO_GENERATED_KEYS, id)) {
             s.executeUpdate();
         }
     }
 
     List<Pending> unsent(int limit) throws SQLException {
         List<Pending> result = new ArrayList<>();
-        try (PreparedStatement s = db.prepareStatement(
-                "SELECT id, content FROM detections WHERE sent=0 ORDER BY id LIMIT ?")) {
-            s.setInt(1, limit);
-            try (ResultSet r = s.executeQuery()) {
-                while (r.next()) {
-                    result.add(new Pending(r.getLong(1), r.getString(2)));
-                }
+        try (PreparedStatement s = prepare("SELECT id, content FROM detections WHERE sent=0 ORDER BY id LIMIT ?",
+                Statement.NO_GENERATED_KEYS, limit); ResultSet r = s.executeQuery()) {
+            while (r.next()) {
+                result.add(new Pending(r.getLong(1), r.getString(2)));
             }
         }
         return result;
@@ -115,9 +99,17 @@ final class AutomationStore implements AutoCloseable {
 
     int count(boolean onlyUnsent) throws SQLException {
         String sql = "SELECT COUNT(*) FROM detections" + (onlyUnsent ? " WHERE sent=0" : "");
-        try (PreparedStatement s = db.prepareStatement(sql); ResultSet r = s.executeQuery()) {
+        try (PreparedStatement s = prepare(sql, Statement.NO_GENERATED_KEYS); ResultSet r = s.executeQuery()) {
             return r.next() ? r.getInt(1) : 0;
         }
+    }
+
+    private PreparedStatement prepare(String sql, int generatedKeys, Object... args) throws SQLException {
+        PreparedStatement s = db.prepareStatement(sql, generatedKeys);
+        for (int i = 0; i < args.length; i++) {
+            s.setObject(i + 1, args[i]);
+        }
+        return s;
     }
 
     @Override

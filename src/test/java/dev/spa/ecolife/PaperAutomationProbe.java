@@ -29,6 +29,7 @@ public final class PaperAutomationProbe extends JavaPlugin {
             logPlacement(world.getBlockAt(165, 69, 165));
             // モブ：チャンク(-10,-10)。1秒ごとにプレイヤー以外の原因で倒す
             world.addPluginChunkTicket(-10, -10, this);
+            logActivityListeners();
             getLogger().info("AUTOMATION_PROBE_READY");
         }, 40);
         Bukkit.getScheduler().runTaskTimer(this, () -> {
@@ -42,6 +43,23 @@ public final class PaperAutomationProbe extends JavaPlugin {
             getLogger().info("AUTOMATION_PROBE_DONE");
             Bukkit.shutdown();
         }, seconds * 20);
+    }
+
+    /** 放置判定に使う操作のイベントを、EcoLifeAssist がいくつ購読しているか。 */
+    private void logActivityListeners() {
+        java.util.List<org.bukkit.event.HandlerList> lists = java.util.List.of(
+                org.bukkit.event.player.PlayerJoinEvent.getHandlerList(),
+                com.destroystokyo.paper.event.player.PlayerJumpEvent.getHandlerList(),
+                org.bukkit.event.player.PlayerToggleSprintEvent.getHandlerList(),
+                org.bukkit.event.player.PlayerToggleSneakEvent.getHandlerList(),
+                org.bukkit.event.block.BlockBreakEvent.getHandlerList(),
+                org.bukkit.event.block.BlockPlaceEvent.getHandlerList(),
+                org.bukkit.event.player.PlayerInteractEvent.getHandlerList(),
+                org.bukkit.event.entity.EntityDamageByEntityEvent.getHandlerList(),
+                org.bukkit.event.inventory.InventoryClickEvent.getHandlerList());
+        long found = lists.stream().filter(list -> java.util.Arrays.stream(list.getRegisteredListeners())
+                .anyMatch(r -> r.getListener().getClass().getName().equals("dev.spa.ecolife.AutomationWatch"))).count();
+        getLogger().info("AUTOMATION_PROBE_ACTIVITY " + found + "/" + lists.size());
     }
 
     /** CoreProtect があれば、ホッパーを probe_user が置いた記録を残す。 */

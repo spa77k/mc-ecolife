@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -70,25 +71,21 @@ final class BonusStore {
     }
 
     private LocalDate parseDate(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(raw);
-        } catch (DateTimeParseException e) {
-            plugin.getLogger().warning("data.yml の日付 " + raw + " を読めませんでした。未受け取りとして扱います。");
-            return null;
-        }
+        return parse(raw, LocalDate::parse, "日付", "未受け取りとして扱います。");
     }
 
     private YearMonth parseMonth(String raw) {
+        return parse(raw, YearMonth::parse, "月", "今月ぶんは1マス目から数えます。");
+    }
+
+    private <T> T parse(String raw, Function<String, T> parser, String what, String fallback) {
         if (raw == null || raw.isBlank()) {
             return null;
         }
         try {
-            return YearMonth.parse(raw);
+            return parser.apply(raw);
         } catch (DateTimeParseException e) {
-            plugin.getLogger().warning("data.yml の月 " + raw + " を読めませんでした。今月ぶんは1マス目から数えます。");
+            plugin.getLogger().warning("data.yml の" + what + " " + raw + " を読めませんでした。" + fallback);
             return null;
         }
     }

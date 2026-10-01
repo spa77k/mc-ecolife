@@ -37,18 +37,14 @@ final class DiscordWebhook {
     boolean send(String webhookUrl, String username, String avatarUrl, String content) {
         String payload = buildPayload(username, avatarUrl, content);
         Result first = attempt(webhookUrl, payload);
-        if (first == Result.OK) {
+        if (first != Result.RETRY) {
+            return first == Result.OK;
+        }
+        if (attempt(webhookUrl, payload) == Result.OK) {
             return true;
         }
-        if (first == Result.GIVE_UP) {
-            return false;
-        }
-        Result second = attempt(webhookUrl, payload);
-        if (second != Result.OK) {
-            logger.warning("Discord通知を1回再送しましたが失敗したため諦めます（" + MASKED_URL + "）。");
-            return false;
-        }
-        return true;
+        logger.warning("Discord通知を1回再送しましたが失敗したため諦めます（" + MASKED_URL + "）。");
+        return false;
     }
 
     private Result attempt(String webhookUrl, String payload) {
@@ -91,28 +87,34 @@ final class DiscordWebhook {
         return Result.GIVE_UP;
     }
 
-    /** Retry-Afterヘッダ、無ければ本文の retry_after を見る。どちらも無ければ既定値を待つ。 */
+    /** Retry-Afterヘッダ、無ければ本文の retry_after を見る。どちらも読めなければ既定値を待つ。 */
     private long retryAfterMillis(HttpResponse<String> response) {
         Optional<String> header = response.headers().firstValue("Retry-After");
         if (header.isPresent()) {
-            try {
-                return (long) (Double.parseDouble(header.get().trim()) * 1000L);
-            } catch (NumberFormatException ignored) {
-                // 本文の解析へフォールバックする。
+            Long millis = secondsToMillis(header.get());
+            if (millis != null) {
+                return millis;
             }
         }
         String body = response.body();
         if (body != null) {
             Matcher matcher = RETRY_AFTER_BODY.matcher(body);
             if (matcher.find()) {
-                try {
-                    return (long) (Double.parseDouble(matcher.group(1)) * 1000L);
-                } catch (NumberFormatException ignored) {
-                    // 既定値へフォールバックする。
+                Long millis = secondsToMillis(matcher.group(1));
+                if (millis != null) {
+                    return millis;
                 }
             }
         }
         return DEFAULT_RETRY_AFTER_MILLIS;
+    }
+
+    private static Long secondsToMillis(String raw) {
+        try {
+            return (long) (Double.parseDouble(raw.trim()) * 1000L);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private void sleep(long millis) {

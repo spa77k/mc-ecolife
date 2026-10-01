@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +25,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -242,58 +244,31 @@ final class AutomationWatch implements Listener {
 
     // --- 放置判定（McLevel の ActivityTracker と同じ操作を自発的な操作とみなす） ---
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onJoin(PlayerJoinEvent event) {
-        markActive(event.getPlayer());
+    /** このリスナーを登録する。放置判定に使う操作は種類が多いので、表にしてまとめて登録する。 */
+    void register() {
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        onActivity(PlayerJoinEvent.class, false, PlayerJoinEvent::getPlayer);
+        onActivity(PlayerJumpEvent.class, true, PlayerJumpEvent::getPlayer);
+        onActivity(PlayerToggleSprintEvent.class, true, PlayerToggleSprintEvent::getPlayer);
+        onActivity(PlayerToggleSneakEvent.class, true, PlayerToggleSneakEvent::getPlayer);
+        onActivity(BlockBreakEvent.class, true, BlockBreakEvent::getPlayer);
+        onActivity(BlockPlaceEvent.class, true, BlockPlaceEvent::getPlayer);
+        onActivity(PlayerInteractEvent.class, false, PlayerInteractEvent::getPlayer);
+        onActivity(EntityDamageByEntityEvent.class, true, EntityDamageByEntityEvent::getDamager);
+        onActivity(InventoryClickEvent.class, true, InventoryClickEvent::getWhoClicked);
+    }
+
+    private <E extends Event> void onActivity(Class<E> type, boolean ignoreCancelled, Function<E, Object> actor) {
+        plugin.getServer().getPluginManager().registerEvent(type, this, EventPriority.MONITOR, (listener, event) -> {
+            if (type.isInstance(event) && actor.apply(type.cast(event)) instanceof Player player) {
+                markActive(player);
+            }
+        }, plugin, ignoreCancelled);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
         lastActive.remove(event.getPlayer().getUniqueId());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onJump(PlayerJumpEvent event) {
-        markActive(event.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onSprint(PlayerToggleSprintEvent event) {
-        markActive(event.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onSneak(PlayerToggleSneakEvent event) {
-        markActive(event.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onBreak(BlockBreakEvent event) {
-        markActive(event.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlace(BlockPlaceEvent event) {
-        markActive(event.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onInteract(PlayerInteractEvent event) {
-        markActive(event.getPlayer());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onAttack(EntityDamageByEntityEvent event) {
-        if (event.getDamager() instanceof Player player) {
-            markActive(player);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getWhoClicked() instanceof Player player) {
-            markActive(player);
-        }
     }
 
     private void markActive(Player player) {
@@ -396,23 +371,20 @@ final class AutomationWatch implements Listener {
 
     /** 半径内にアクティブなプレイヤーが1人もいなければ放置中とみなす。誰もいない場合も含む。 */
     private boolean isUnattended(World world, ChunkKey key, long now, AutomationConfig config) {
-        double centerX = (key.x() << 4) + 8;
-        double centerZ = (key.z() << 4) + 8;
-        double radiusSquared = (double) config.radiusBlocks() * config.radiusBlocks();
         long afkMillis = config.afkSeconds() * 1000L;
-        for (Player player : world.getPlayers()) {
+        return playersNear(world, (key.x() << 4) + 8, (key.z() << 4) + 8, config.radiusBlocks()).stream()
+                .map(player -> lastActive.get(player.getUniqueId()))
+                .noneMatch(last -> last != null && now - last <= afkMillis);
+    }
+
+    private static List<Player> playersNear(World world, double x, double z, int radius) {
+        double radiusSquared = (double) radius * radius;
+        return world.getPlayers().stream().filter(player -> {
             Location loc = player.getLocation();
-            double dx = loc.getX() - centerX;
-            double dz = loc.getZ() - centerZ;
-            if (dx * dx + dz * dz > radiusSquared) {
-                continue;
-            }
-            Long last = lastActive.get(player.getUniqueId());
-            if (last != null && now - last <= afkMillis) {
-                return false;
-            }
-        }
-        return true;
+            double dx = loc.getX() - x;
+            double dz = loc.getZ() - z;
+            return dx * dx + dz * dz <= radiusSquared;
+        }).toList();
     }
 
     /**
@@ -453,16 +425,9 @@ final class AutomationWatch implements Listener {
             }
         }
 
-        List<String> nearby = new ArrayList<>();
-        double radiusSquared = (double) config.radiusBlocks() * config.radiusBlocks();
-        for (Player player : world.getPlayers()) {
-            Location loc = player.getLocation();
-            double dx = loc.getX() - x;
-            double dz = loc.getZ() - z;
-            if (dx * dx + dz * dz <= radiusSquared) {
-                nearby.add(NotifyText.sanitize(player.getName(), 32));
-            }
-        }
+        List<String> nearby = playersNear(world, x, z, config.radiusBlocks()).stream()
+                .map(player -> NotifyText.sanitize(player.getName(), 32))
+                .toList();
         Who owner = claimOwner(location);
         String mapUrl = mapUrl(config, world, x, y, z);
 
@@ -510,8 +475,8 @@ final class AutomationWatch implements Listener {
             return "";
         }
         String mapId = world.getName();
-        Plugin bluemap = Bukkit.getPluginManager().getPlugin("BlueMap");
-        if (bluemap != null && bluemap.isEnabled()) {
+        Plugin bluemap = enabledPlugin("BlueMap");
+        if (bluemap != null) {
             try {
                 ClassLoader loader = bluemap.getClass().getClassLoader();
                 Class<?> apiClass = Class.forName("de.bluecolored.bluemap.api.BlueMapAPI", false, loader);
@@ -540,8 +505,8 @@ final class AutomationWatch implements Listener {
 
     /** CoreProtect の記録から、そのブロックを最後に設置した人と日時。DBを引くのでメインスレッドで呼ばない。 */
     private static Who placer(Block block) {
-        Plugin coreProtect = Bukkit.getPluginManager().getPlugin("CoreProtect");
-        if (coreProtect == null || !coreProtect.isEnabled()) {
+        Plugin coreProtect = enabledPlugin("CoreProtect");
+        if (coreProtect == null) {
             return Who.unknown("不明（CoreProtect未導入）");
         }
         try {
@@ -609,8 +574,8 @@ final class AutomationWatch implements Listener {
 
     /** GriefPrevention の土地の持ち主。コンパイル時依存にしないため、公開APIをリフレクションで呼ぶ。 */
     private static Who claimOwner(Location location) {
-        Plugin gp = Bukkit.getPluginManager().getPlugin("GriefPrevention");
-        if (gp == null || !gp.isEnabled()) {
+        Plugin gp = enabledPlugin("GriefPrevention");
+        if (gp == null) {
             return Who.unknown("不明（GriefPrevention未導入）");
         }
         try {
@@ -627,6 +592,11 @@ final class AutomationWatch implements Listener {
         } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
             return Who.unknown("不明");
         }
+    }
+
+    private static Plugin enabledPlugin(String name) {
+        Plugin found = Bukkit.getPluginManager().getPlugin(name);
+        return found != null && found.isEnabled() ? found : null;
     }
 
     private static long pack(int x, int y, int z) {

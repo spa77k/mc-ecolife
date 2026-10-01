@@ -39,7 +39,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         startNotify();
 
         automation = new AutomationWatch(this);
-        getServer().getPluginManager().registerEvents(automation, this);
+        automation.register();
         automation.start(AutomationConfig.load(this));
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
