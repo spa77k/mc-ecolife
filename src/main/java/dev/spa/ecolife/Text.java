@@ -16,6 +16,6 @@ final class Text {
     }
 
     static Component prefixed(String legacy) {
-        return LEGACY.deserialize("&8[&aエコライフ&8] &r" + legacy);
+        return LEGACY.deserialize("&8[&aえこらいふ&8] &r" + legacy);
     }
 }
