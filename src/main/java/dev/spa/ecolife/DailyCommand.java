@@ -6,13 +6,15 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-/** /daily 今月のカレンダーの進み具合を見る。未受け取りが残っていればその場で渡す。 */
+/** /daily 今月のカレンダーを開く。未受け取りが残っていれば、先にその場で渡す。 */
 final class DailyCommand implements CommandExecutor {
 
     private final EcoLifeAssistPlugin plugin;
+    private final DailyGui gui;
 
-    DailyCommand(EcoLifeAssistPlugin plugin) {
+    DailyCommand(EcoLifeAssistPlugin plugin, DailyGui gui) {
         this.plugin = plugin;
+        this.gui = gui;
     }
 
     @Override
@@ -30,9 +32,8 @@ final class DailyCommand implements CommandExecutor {
         // 普段は参加時に自動で渡すが、受け取り前にコマンドを打った場合はここで渡す。
         if (plugin.bonuses().canClaim(player.getUniqueId())) {
             plugin.bonuses().announce(player, plugin.bonuses().claim(player));
-            return true;
         }
-        plugin.bonuses().sendProgress(player);
+        gui.open(player);
         return true;
     }
 }

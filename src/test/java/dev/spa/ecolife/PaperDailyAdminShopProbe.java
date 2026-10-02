@@ -48,6 +48,13 @@ public final class PaperDailyAdminShopProbe extends JavaPlugin {
         boolean missing = Boolean.getBoolean("probe.no-adminshop");
         check(missing || shop != null && shop.isEnabled(), "AdminShop enabled");
 
+        // 14マス目が帰還の護符なのは毎月同じ rewards のほう。月替わりの抽選は切って確かめる。
+        ((JavaPlugin) eco).getConfig().set("monthly-rewards.start", "");
+        ((JavaPlugin) eco).saveConfig();
+        Method reloadAll = eco.getClass().getDeclaredMethod("reloadAll");
+        reloadAll.setAccessible(true);
+        reloadAll.invoke(eco);
+
         Object config = field(eco, "bonusConfig");
         Method todayMethod = config.getClass().getDeclaredMethod("today");
         todayMethod.setAccessible(true);

@@ -19,6 +19,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
     private BonusConfig bonusConfig;
     private BonusStore store;
+    private CalendarStore calendars;
     private BonusService bonuses;
 
     private NotifyConfig notifyConfig;
@@ -32,7 +33,10 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         saveDefaultConfig();
         this.bonusConfig = BonusConfig.load(this);
         this.store = BonusStore.open(this);
+        this.calendars = CalendarStore.open(this);
         this.bonuses = new BonusService(this);
+        DailyGui dailyGui = new DailyGui(this);
+        getServer().getPluginManager().registerEvents(dailyGui, this);
 
         this.notifyConfig = NotifyConfig.load(this);
         this.notifyService = new NotifyService(this);
@@ -87,7 +91,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(graves, this);
         register("grave", graves, null);
 
-        register("daily", new DailyCommand(this), null);
+        register("daily", new DailyCommand(this, dailyGui), null);
         EcoLifeCommand ecoLifeCommand = new EcoLifeCommand(this);
         register("ecolife", ecoLifeCommand, ecoLifeCommand);
 
@@ -98,6 +102,10 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         getLogger().info("ログインボーナスを読み込みました。区切りは " + bonusConfig.zone()
                 + " の " + bonusConfig.resetHour() + "時、報酬表は " + bonusConfig.rewards().configuredDays()
                 + " マス、記録は " + store.size() + " 人ぶんです。");
+        if (bonusConfig.monthly().start() != null) {
+            getLogger().info("月替わりの抽選は " + bonusConfig.monthly().start() + " から（"
+                    + bonusConfig.monthly().poolCount() + " 段階、抽選済み " + calendars.savedMonths() + " か月）。");
+        }
         getLogger().info("Discord通知は " + (notifyService.isActive() ? "有効です。" : "無効です。"));
     }
 
@@ -162,6 +170,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         if (graves != null) graves.reload();
         if (invites != null) invites.validate();
         this.bonusConfig = BonusConfig.load(this);
+        this.calendars = CalendarStore.open(this);
 
         notifyBridge.unregisterAll();
         notifyService.stop();
@@ -178,6 +187,10 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
     BonusStore store() {
         return store;
+    }
+
+    CalendarStore calendars() {
+        return calendars;
     }
 
     BonusService bonuses() {

@@ -46,6 +46,10 @@ final class EcoLifeCommand implements CommandExecutor, TabCompleter {
                         + (config.enabled() ? "有効" : "無効")
                         + " &7/ 報酬表 &f" + config.rewards().configuredDays() + "&7マス設定済み"
                         + " &7/ 区切り &f" + config.zone() + " の " + config.resetHour() + "時"));
+                sender.sendMessage(Text.prefixed("&7月替わりの抽選: &f"
+                        + (config.monthly().start() == null ? "使わない"
+                                : config.monthly().start() + " から（" + config.monthly().poolCount() + " 段階、抽選済み "
+                                        + plugin.calendars().savedMonths() + " か月）")));
             }
             case "info" -> {
                 String name = args.length >= 2 ? args[1]

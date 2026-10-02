@@ -20,6 +20,18 @@ final class BonusService {
         this.plugin = plugin;
     }
 
+    /**
+     * その月の報酬表。抽選の月なら保存済みのカレンダーを使い、まだなければここで抽選する。
+     * calendars.yml が読めないときは UnavailableException を投げ、受け取りを保留させる。
+     */
+    RewardTable rewardsFor(YearMonth month) {
+        BonusConfig config = plugin.bonusConfig();
+        if (!config.monthly().appliesTo(month)) {
+            return config.rewards();
+        }
+        return plugin.calendars().getOrDraw(month, config.monthly());
+    }
+
     /** 今日ぶんがまだ残っているか。 */
     boolean canClaim(UUID uuid) {
         BonusConfig config = plugin.bonusConfig();
@@ -53,7 +65,7 @@ final class BonusService {
         boolean perfect = slot >= month.lengthOfMonth();
         List<ItemStack> rewards;
         try {
-            rewards = config.rewards().forDay(slot);
+            rewards = rewardsFor(month).forDay(slot);
         } catch (RewardTable.UnavailableException e) {
             plugin.getLogger().warning(slot + "マス目の報酬を保留: " + e.getMessage());
             return ClaimResult.of(ClaimResult.Status.UNAVAILABLE);
@@ -149,7 +161,7 @@ final class BonusService {
         if (next <= month.lengthOfMonth()) {
             List<ItemStack> rewards;
             try {
-                rewards = config.rewards().forDay(next);
+                rewards = rewardsFor(month).forDay(next);
             } catch (RewardTable.UnavailableException e) {
                 rewards = null;
             }
@@ -183,7 +195,7 @@ final class BonusService {
      * 今月このまま毎日入った場合に到達できるマス。
      * 今日ぶんが未受け取りなら今日を残りに数える。
      */
-    private static int reachableMax(BonusConfig config, BonusRecord record) {
+    static int reachableMax(BonusConfig config, BonusRecord record) {
         LocalDate today = config.today();
         YearMonth month = YearMonth.from(today);
         int remainingDays = month.lengthOfMonth() - today.getDayOfMonth();

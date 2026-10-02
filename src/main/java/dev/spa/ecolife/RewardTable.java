@@ -2,6 +2,7 @@ package dev.spa.ecolife;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.Material;
@@ -9,7 +10,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/** config.yml の rewards を読んだ、1日目〜31日目の報酬表。 */
+/** 1日目〜31日目の報酬表。config.yml の rewards か、月ごとに抽選したカレンダーから作る。 */
 final class RewardTable {
 
     /** カレンダーの最大マス数。31日ある月の皆勤でここまで届く。 */
@@ -18,14 +19,79 @@ final class RewardTable {
     private final JavaPlugin plugin;
     private final Map<Integer, List<RewardEntry>> byDay;
 
-    private RewardTable(JavaPlugin plugin, Map<Integer, List<RewardEntry>> byDay) {
+    RewardTable(JavaPlugin plugin, Map<Integer, List<RewardEntry>> byDay) {
         this.plugin = plugin;
         this.byDay = byDay;
     }
 
-    private record RewardEntry(ItemStack vanilla, String adminShopId) {
+    /** 報酬1つぶん。アイテムは渡すときに作る。 */
+    record RewardEntry(Material material, int amount, String adminShopId) {
         ItemStack create(JavaPlugin plugin) {
-            return adminShopId == null ? vanilla.clone() : AdminShopReward.create(plugin, adminShopId);
+            if (adminShopId == null) {
+                return new ItemStack(material, amount);
+            }
+            ItemStack item = AdminShopReward.create(plugin, adminShopId);
+            item.setAmount(amount);
+            return item;
+        }
+
+        /** calendars.yml に書き戻すときの形。config.yml の書き方と同じにする。 */
+        Map<String, Object> toMap() {
+            Map<String, Object> map = new LinkedHashMap<>();
+            if (adminShopId == null) {
+                map.put("material", material.name());
+            } else {
+                map.put("adminshop-item", adminShopId);
+            }
+            map.put("amount", amount);
+            return map;
+        }
+
+        /**
+         * 1行ぶんの書き方を読む。読めなければ警告を出して null を返す。
+         * where は警告に出す場所の説明（例: 「5日目」）。
+         */
+        static RewardEntry parse(JavaPlugin plugin, String where, Map<?, ?> entry) {
+            int amount = 1;
+            Object rawAmount = entry.get("amount");
+            if (rawAmount instanceof Number number) {
+                amount = Math.max(1, number.intValue());
+            }
+            Object product = entry.get("adminshop-item");
+            if (product != null) {
+                String id = String.valueOf(product);
+                if (!id.matches("[a-z0-9_]+") || entry.containsKey("material")) {
+                    plugin.getLogger().warning(where + "の adminshop-item が不正です: " + id);
+                    return null;
+                }
+                return new RewardEntry(null, amount, id);
+            }
+            Object rawMaterial = entry.get("material");
+            if (rawMaterial == null) {
+                plugin.getLogger().warning(where + "の報酬に material がありません。読み飛ばします。");
+                return null;
+            }
+            Material material = Material.matchMaterial(String.valueOf(rawMaterial));
+            if (material == null || !material.isItem()) {
+                plugin.getLogger().warning(where + "の " + rawMaterial + " はアイテムとして扱えません。読み飛ばします。");
+                return null;
+            }
+            return new RewardEntry(material, amount, null);
+        }
+
+        static List<RewardEntry> parseAll(JavaPlugin plugin, String where, List<?> entries) {
+            List<RewardEntry> parsed = new ArrayList<>();
+            for (Object entry : entries) {
+                if (!(entry instanceof Map<?, ?> map)) {
+                    plugin.getLogger().warning(where + "に読めない行があります。読み飛ばします。");
+                    continue;
+                }
+                RewardEntry reward = parse(plugin, where, map);
+                if (reward != null) {
+                    parsed.add(reward);
+                }
+            }
+            return parsed;
         }
     }
 
@@ -53,13 +119,7 @@ final class RewardTable {
                 continue;
             }
 
-            List<RewardEntry> stacks = new ArrayList<>();
-            for (Map<?, ?> entry : section.getMapList(key)) {
-                RewardEntry stack = toEntry(plugin, day, entry);
-                if (stack != null) {
-                    stacks.add(stack);
-                }
-            }
+            List<RewardEntry> stacks = RewardEntry.parseAll(plugin, day + "日目", section.getMapList(key));
             if (!stacks.isEmpty()) {
                 byDay.put(day, stacks);
             }
@@ -73,35 +133,7 @@ final class RewardTable {
         return new RewardTable(plugin, byDay);
     }
 
-    private static RewardEntry toEntry(JavaPlugin plugin, int day, Map<?, ?> entry) {
-        Object product = entry.get("adminshop-item");
-        if (product != null) {
-            String id = String.valueOf(product);
-            if (!id.matches("[a-z0-9_]+") || entry.containsKey("material")) {
-                plugin.getLogger().warning(day + "日目の adminshop-item が不正です: " + id);
-                return null;
-            }
-            return new RewardEntry(null, id);
-        }
-        Object rawMaterial = entry.get("material");
-        if (rawMaterial == null) {
-            plugin.getLogger().warning(day + "日目の報酬に material がありません。読み飛ばします。");
-            return null;
-        }
-        Material material = Material.matchMaterial(String.valueOf(rawMaterial));
-        if (material == null || !material.isItem()) {
-            plugin.getLogger().warning(day + "日目の " + rawMaterial + " はアイテムとして扱えません。読み飛ばします。");
-            return null;
-        }
-        int amount = 1;
-        Object rawAmount = entry.get("amount");
-        if (rawAmount instanceof Number number) {
-            amount = Math.max(1, number.intValue());
-        }
-        return new RewardEntry(new ItemStack(material, amount), null);
-    }
-
-    /** その日のマスの報酬。渡すたびに複製を返すので、呼び出し側が変えても表は壊れない。 */
+    /** その日のマスの報酬。渡すたびに作り直すので、呼び出し側が変えても表は壊れない。 */
     List<ItemStack> forDay(int day) {
         List<RewardEntry> stacks = byDay.get(day);
         if (stacks == null) {
@@ -112,6 +144,11 @@ final class RewardTable {
             copies.add(stack.create(plugin));
         }
         return copies;
+    }
+
+    /** その日のマスの中身の書き方。保存や記録に使う。 */
+    List<RewardEntry> entriesFor(int day) {
+        return byDay.getOrDefault(day, List.of());
     }
 
     int configuredDays() {

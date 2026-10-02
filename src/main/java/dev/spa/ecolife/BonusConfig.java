@@ -21,9 +21,11 @@ final class BonusConfig {
     private final boolean title;
     private final String soundKey;
     private final RewardTable rewards;
+    private final MonthlyRewards monthly;
 
     private BonusConfig(ZoneId zone, int resetHour, boolean enabled, long claimDelayTicks,
-                        boolean broadcastPerfectMonth, boolean title, String soundKey, RewardTable rewards) {
+                        boolean broadcastPerfectMonth, boolean title, String soundKey, RewardTable rewards,
+                        MonthlyRewards monthly) {
         this.zone = zone;
         this.resetHour = resetHour;
         this.enabled = enabled;
@@ -32,6 +34,7 @@ final class BonusConfig {
         this.title = title;
         this.soundKey = soundKey;
         this.rewards = rewards;
+        this.monthly = monthly;
     }
 
     static BonusConfig load(JavaPlugin plugin) {
@@ -56,7 +59,8 @@ final class BonusConfig {
                 config.getBoolean("login-bonus.broadcast-perfect-month", true),
                 config.getBoolean("effects.title", true),
                 soundKey(config.getString("effects.sound", "ENTITY_PLAYER_LEVELUP")),
-                RewardTable.load(plugin, config.getConfigurationSection("rewards")));
+                RewardTable.load(plugin, config.getConfigurationSection("rewards")),
+                MonthlyRewards.load(plugin, config.getConfigurationSection("monthly-rewards")));
     }
 
     /** ENTITY_PLAYER_LEVELUP のような書き方を、どのサーバー版でも通る entity.player.levelup へ直す。 */
@@ -121,7 +125,12 @@ final class BonusConfig {
         return soundKey;
     }
 
+    /** 毎月同じ報酬表。monthly-rewards.start より前の月と、抽選を使わないときに配る。 */
     RewardTable rewards() {
         return rewards;
+    }
+
+    MonthlyRewards monthly() {
+        return monthly;
     }
 }

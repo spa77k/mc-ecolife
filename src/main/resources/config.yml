@@ -152,7 +152,7 @@ effects:
   title: true
   sound: ENTITY_PLAYER_LEVELUP
 
-# カレンダーの中身。キーが「その月の何マス目か」。
+# 毎月同じカレンダーの中身。下の monthly-rewards.start より前の月に使う。キーが「その月の何マス目か」。
 # 2月は最大28マス目まで、31日ある月だけ31マス目に届く。
 # 1マスに複数のアイテムを置ける。material はバニラのアイテム名。
 # adminshop-item は AdminShop が生成する効果付き商品ID。利用できない日は受け取りを保留する。
@@ -228,6 +228,107 @@ rewards:
   31:
     - { material: DIAMOND, amount: 4 }
     - { material: GOLDEN_APPLE, amount: 1 }
+
+# 月替わりのカレンダー。start の月から、毎月のマスを段階ごとの候補から抽選する。
+# start より前の月は、上の rewards を使う。start を空にすると、毎月 rewards を使う。
+#
+# 抽選はその月で最初に必要になったとき（受け取りや /daily）に1回だけ行い、
+# plugins/EcoLifeAssist/calendars.yml に保存する。以後その月は保存した中身を使うため、
+# 再起動や候補の書き換えで抽選済みの月の中身は変わらない。変更は次の抽選から効く。
+#
+# 段階ごとに、slots のマスへ candidates から1つずつ置く。同じ月の同じ段階では、
+# 同じ候補を2回使わない。候補1つは [ ... ] の中に1個以上のアイテムを書く。
+# 書き方は rewards と同じで、adminshop-item にも amount を付けられる。
+# 値の張るものは後ろの段階にだけ置き、前半は「その日の作業がはかどる消耗品」にしている。
+# サーバー全体に効く AdminShop 商品（豊穣の鐘など）は、1人の受け取りで全員に効くため候補にしない。
+monthly-rewards:
+  start: "2026-11"
+  pools:
+    early:
+      slots: [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13]
+      candidates:
+        - [{ material: BREAD, amount: 16 }]
+        - [{ material: COOKED_BEEF, amount: 8 }]
+        - [{ material: TORCH, amount: 32 }]
+        - [{ material: COAL, amount: 16 }]
+        - [{ material: IRON_INGOT, amount: 4 }]
+        - [{ material: ARROW, amount: 32 }]
+        - [{ material: BONE_MEAL, amount: 32 }]
+        - [{ material: EXPERIENCE_BOTTLE, amount: 4 }]
+        - [{ material: COOKED_PORKCHOP, amount: 8 }]
+        - [{ material: BAKED_POTATO, amount: 16 }]
+        - [{ material: OAK_LOG, amount: 32 }]
+        - [{ material: REDSTONE, amount: 16 }]
+        - [{ material: GOLD_INGOT, amount: 2 }]
+        - [{ material: LEAD, amount: 2 }]
+        - [{ material: NAME_TAG, amount: 1 }]
+        - [{ material: COPPER_INGOT, amount: 16 }]
+    # 1週間の節目。
+    week1:
+      slots: [7]
+      candidates:
+        - [{ material: EXPERIENCE_BOTTLE, amount: 8 }, { material: BREAD, amount: 16 }]
+        - [{ material: IRON_INGOT, amount: 8 }, { material: TORCH, amount: 32 }]
+        - [{ material: GOLDEN_CARROT, amount: 8 }, { material: ARROW, amount: 32 }]
+    # 2週間の節目。
+    week2:
+      slots: [14]
+      candidates:
+        - [{ adminshop-item: return_charm, amount: 1 }]
+        - [{ adminshop-item: capture_egg, amount: 1 }]
+        - [{ material: GOLDEN_APPLE, amount: 2 }]
+    middle:
+      slots: [15, 16, 17, 18, 19, 20]
+      candidates:
+        - [{ material: COAL_BLOCK, amount: 4 }]
+        - [{ material: IRON_INGOT, amount: 12 }]
+        - [{ material: ARROW, amount: 64 }]
+        - [{ material: LAPIS_LAZULI, amount: 32 }]
+        - [{ material: GOLDEN_APPLE, amount: 1 }]
+        - [{ material: GOLD_INGOT, amount: 8 }]
+        - [{ material: GOLDEN_CARROT, amount: 16 }]
+        - [{ material: EXPERIENCE_BOTTLE, amount: 8 }]
+        - [{ adminshop-item: capture_egg, amount: 1 }]
+    # 3週間の節目。ここから値の張るものが出る。
+    week3:
+      slots: [21]
+      candidates:
+        - [{ material: DIAMOND, amount: 1 }, { material: EXPERIENCE_BOTTLE, amount: 8 }]
+        - [{ material: EMERALD, amount: 6 }, { material: EXPERIENCE_BOTTLE, amount: 8 }]
+        - [{ material: ENDER_PEARL, amount: 4 }, { material: EXPERIENCE_BOTTLE, amount: 8 }]
+    late:
+      slots: [22, 23, 24, 25, 26, 27, 29]
+      candidates:
+        - [{ material: EXPERIENCE_BOTTLE, amount: 16 }]
+        - [{ material: EXPERIENCE_BOTTLE, amount: 24 }]
+        - [{ material: IRON_BLOCK, amount: 2 }]
+        - [{ material: ENDER_PEARL, amount: 4 }]
+        - [{ material: OBSIDIAN, amount: 8 }]
+        - [{ material: EMERALD, amount: 6 }]
+        - [{ material: GOLDEN_APPLE, amount: 2 }]
+        - [{ material: DIAMOND, amount: 2 }]
+        - [{ adminshop-item: return_charm, amount: 2 }]
+        - [{ material: BOOKSHELF, amount: 4 }]
+    # 4週間の節目。2月はここが最後のマスになる。
+    week4:
+      slots: [28]
+      candidates:
+        - [{ material: DIAMOND, amount: 2 }, { material: EXPERIENCE_BOTTLE, amount: 16 }]
+        - [{ adminshop-item: keepsake_charm, amount: 1 }, { material: EXPERIENCE_BOTTLE, amount: 16 }]
+        - [{ material: DIAMOND, amount: 1 }, { material: GOLDEN_APPLE, amount: 2 }, { material: EXPERIENCE_BOTTLE, amount: 8 }]
+    # 最後のマス。30と31に同じ候補が重ならない。
+    final:
+      slots: [30, 31]
+      candidates:
+        - [{ material: DIAMOND, amount: 3 }]
+        - [{ material: DIAMOND, amount: 1 }, { adminshop-item: keepsake_charm, amount: 1 }]
+        - [{ material: DIAMOND, amount: 2 }, { material: EXPERIENCE_BOTTLE, amount: 16 }]
+        - [{ material: EMERALD_BLOCK, amount: 1 }, { material: DIAMOND, amount: 1 }]
+  # 抽選の結果に、毎月必ず足すアイテム。
+  always:
+    # 31日ある月を皆勤した人だけが届くマス。
+    31:
+      - { material: GOLDEN_APPLE, amount: 1 }
 
 # 紹介報酬。Vault と経済プラグインがない場合は支払いを保留します。
 invite:
