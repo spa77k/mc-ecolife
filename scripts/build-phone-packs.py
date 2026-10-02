@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Create deterministic Java/Bedrock packs from the shared 32px phone sprite."""
+"""Create deterministic Java/Bedrock packs from the shared 32px phone sprite.
+
+The Java pack also carries the grave texture (assets/grave/grave.png, made with Codex image generation).
+Bedrock never sees the grave because Geyser does not translate item displays.
+"""
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 import struct
@@ -44,9 +48,10 @@ png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE,
 OUT.mkdir(exist_ok=True)
 
 
-def pack(folder, destination, texture_path):
+def pack(folder, destination, texture_path, extra=None):
     entries = {p.relative_to(folder).as_posix(): p.read_bytes() for p in folder.rglob("*") if p.is_file()}
     entries[texture_path] = png
+    entries.update(extra or {})
     with ZipFile(destination, "w", ZIP_DEFLATED, compresslevel=9) as archive:
         for name, data in sorted(entries.items()):
             info = ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))
@@ -55,5 +60,6 @@ def pack(folder, destination, texture_path):
             archive.writestr(info, data)
 
 
-pack(BASE / "java", OUT / "ecolife-phone-java.zip", "assets/ecolife/textures/item/smartphone.png")
+pack(BASE / "java", OUT / "ecolife-phone-java.zip", "assets/ecolife/textures/item/smartphone.png",
+     {"assets/ecolife/textures/item/grave.png": (ROOT / "assets" / "grave" / "grave.png").read_bytes()})
 pack(BASE / "bedrock", OUT / "ecolife-phone-bedrock.mcpack", "textures/items/smartphone.png")

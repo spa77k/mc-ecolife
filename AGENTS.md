@@ -78,3 +78,11 @@
 - `automation.db` は `../spsmc-insight` の `AutomationExport` が読み取り専用で開き、週次出力に含める。列を変えるときは両方を揃える。
 - Webhookは一般向けの `notify.webhook-url` と分け、`${CFG_ECOLIFE_AUTOMATION_WEBHOOK}` を使う。座標が載るため一般チャンネルへ流さない。
 - 変更時は `mvn -B package` と `python3 scripts/test-automation-paper.py` を実行する。隔離Paperは `target/automation-paper-smoke`、待受は既定で `127.0.0.1:25584`（`AUTOMATION_TEST_PORT` で変更）。設置者の検索まで確かめるときは `COREPROTECT_JAR` に本番と同じCoreProtectのJARを指定する。放置していないプレイヤーがいる場合に通知しないことは、テスト用Playerでは未検証。
+
+## お墓
+
+- 2026-10-02の指定: 死亡時の持ち物を預かるお墓をEcoLifeAssistに入れる（外部プラグインのAxGravesは使わない）。墓石のテクスチャはCodex CLIの画像生成で作る。
+- 中身の正本は `graves.yml`。取り出し・期限切れでは、先に記録を消して保存してから中身を渡す（二重に渡さない）。
+- 墓石は `ItemDisplay`。Geyserが送らないため、統合版では名前表示（`TextDisplay`）とクリック判定（`Interaction`）だけになる。
+- テクスチャを作り直すときは `codex exec --enable image_generation` で32×32・単色マゼンタ背景の絵を作り、背景を透過して `assets/grave/grave.png` に置く。`scripts/build-phone-packs.py` がJava用パックへ入れる。
+- 変更時は `mvn -B package` と `python3 scripts/test-grave-paper.py` を実行する。隔離Paperは `target/grave-paper-smoke`、待受は既定で `127.0.0.1:25585`（`GRAVE_TEST_PORT` で変更）。詳細は `docs/grave.md`。実クライアントでの見た目は別途確認が必要。

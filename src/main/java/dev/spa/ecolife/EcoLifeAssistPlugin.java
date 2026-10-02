@@ -15,6 +15,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     private dev.spa.ecolife.poster.PosterService posters;
     private dev.spa.ecolife.rtp.RtpService rtp;
     private PhoneService phone;
+    private dev.spa.ecolife.grave.GraveService graves;
 
     private BonusConfig bonusConfig;
     private BonusStore store;
@@ -82,6 +83,10 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
             return;
         }
 
+        graves = new dev.spa.ecolife.grave.GraveService(this);
+        getServer().getPluginManager().registerEvents(graves, this);
+        register("grave", graves, null);
+
         register("daily", new DailyCommand(this), null);
         EcoLifeCommand ecoLifeCommand = new EcoLifeCommand(this);
         register("ecolife", ecoLifeCommand, ecoLifeCommand);
@@ -99,6 +104,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (rtp != null) rtp.close();
+        if (graves != null) graves.close();
         if (posters != null) posters.close();
         if (invites != null) {
             try { invites.close(); } catch (java.sql.SQLException e) { getLogger().log(java.util.logging.Level.SEVERE, "招待DBを閉じられませんでした", e); }
@@ -153,6 +159,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     void reloadAll() {
         reloadConfig();
         if (rtp != null) rtp.reload();
+        if (graves != null) graves.reload();
         if (invites != null) invites.validate();
         this.bonusConfig = BonusConfig.load(this);
 

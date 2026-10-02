@@ -4,7 +4,7 @@ main: dev.spa.ecolife.EcoLifeAssistPlugin
 api-version: "26.1.2"
 softdepend: [Vault, McLevel, AdminShop]
 author: spa
-description: ログインボーナス・友達招待・Discord通知・ポスター・スマホ・自動化装置の検出。
+description: ログインボーナス・友達招待・Discord通知・ポスター・スマホ・お墓・自動化装置の検出。
 
 commands:
   phone:
@@ -16,6 +16,10 @@ commands:
   poster:
     description: 運営が用意したポスターを選んで受け取る
     usage: /poster [reload]
+  grave:
+    description: 自分のお墓の場所と残り時間を見る
+    usage: /grave [all]
+    permission: ecolife.grave
   invite:
     description: 友達招待と招待実績
     usage: /invite [名前|top|code 名前|admin]
@@ -45,6 +49,12 @@ permissions:
     default: true
   ecolife.poster.admin:
     description: ポスター画像一覧の再読み込み
+    default: op
+  ecolife.grave:
+    description: 自分のお墓の一覧を見る
+    default: true
+  ecolife.grave.admin:
+    description: 他人のお墓を取り出す・全員のお墓を一覧する
     default: op
   ecolife.invite:
     description: 友達招待の登録・GUI・ランキング

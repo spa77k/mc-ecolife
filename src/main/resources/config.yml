@@ -134,6 +134,19 @@ automation-watch:
   # 集計の区切り（秒）。通常は60のまま使う。
   check-interval-seconds: 60
 
+# 死亡時の持ち物をお墓に預ける。本人がお墓を右クリック（統合版はタップ）すると、空いている元のスロットへ戻る。
+# 期限が過ぎると中身はその場に落ち、お墓がないときと同じ扱い（時間がたつと消える）になる。
+# 中身は plugins/EcoLifeAssist/graves.yml に保存するため、再起動をまたいでも残る。
+# keepInventory が有効なワールドではお墓を作らない。
+grave:
+  enabled: true
+  # 本人だけが取り出せる時間（分）。サーバー停止中も時間は進む。
+  expire-minutes: 15
+  # 死亡時に落ちる経験値（バニラと同じ量）もお墓に預ける。
+  keep-exp: true
+  # お墓を作らないワールド名。
+  excluded-worlds: []
+
 # 受け取ったときの演出。
 effects:
   title: true
