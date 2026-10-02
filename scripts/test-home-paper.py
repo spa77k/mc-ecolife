@@ -17,7 +17,7 @@ if work.exists():
 for name in ('libraries', 'cache', 'versions'):
     if (source / name).exists():
         shutil.copytree(source / name, work / name)
-shutil.copy2(source / 'paper-26.1.2-74.jar', work / 'paper.jar')
+shutil.copy2(source / 'paper-26.2-129.jar', work / 'paper.jar')
 shutil.copy2(source / 'eula.txt', work / 'eula.txt')
 shutil.copy2(source / 'plugins/EssentialsX-2.22.0.jar', work / 'plugins/EssentialsX.jar')
 shutil.copy2(root / 'target/ecolifeassist-1.0.0.jar', work / 'plugins/EcoLifeAssist.jar')
@@ -26,7 +26,7 @@ with (work / 'plugins/Essentials/config.yml').open('a') as config:
     config.write('\n# テスト用Playerの権限をBukkitへ直接問い合わせる。\nuse-bukkit-permissions: true\n')
 (work / 'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25581\nonline-mode=false\nview-distance=2\nsimulation-distance=2\nlevel-type=minecraft:flat\ngenerate-structures=false\n')
 with zipfile.ZipFile(work / 'plugins/HomeProbe.jar', 'w') as jar:
-    jar.writestr('plugin.yml', 'name: HomeProbe\nversion: 1\nmain: dev.spa.ecolife.PaperHomeProbe\napi-version: "26.1.2"\ndepend: [EcoLifeAssist, Essentials]\n')
+    jar.writestr('plugin.yml', 'name: HomeProbe\nversion: 1\nmain: dev.spa.ecolife.PaperHomeProbe\napi-version: "26.2"\ndepend: [EcoLifeAssist, Essentials]\n')
     for file in (root / 'target/test-classes/dev/spa/ecolife').glob('PaperHomeProbe*.class'):
         jar.write(file, 'dev/spa/ecolife/' + file.name)
 with (work / 'run.log').open('w') as log:

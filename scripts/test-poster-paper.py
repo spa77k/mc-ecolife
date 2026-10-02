@@ -19,7 +19,7 @@ if work.exists():
 for name in ('libraries', 'cache', 'versions'):
     if (source / name).exists():
         shutil.copytree(source / name, work / name)
-shutil.copy2(source / 'paper-26.1.2-74.jar', work / 'paper.jar')
+shutil.copy2(source / 'paper-26.2-129.jar', work / 'paper.jar')
 shutil.copy2(source / 'eula.txt', work / 'eula.txt')
 shutil.copy2(root / 'target/ecolifeassist-1.0.0.jar', work / 'plugins/EcoLifeAssist.jar')
 (work / 'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25580\nonline-mode=false\nview-distance=2\nsimulation-distance=2\nlevel-type=minecraft:flat\ngenerate-structures=false\n')
@@ -30,7 +30,7 @@ png += chunk(b'IDAT', zlib.compress((b'\x00' + b'\xff\xff\x00' * 256) * 256)) + 
 (work / 'plugins/EcoLifeAssist/posters/images/test.png').write_bytes(png)
 (work / 'plugins/EcoLifeAssist/posters/catalog.yml').write_text('posters:\n' + ''.join(f'  sample{i}:\n    title: テスト{i}\n    file: test.png\n    width: 2\n    height: 2\n' for i in range(47)))
 with zipfile.ZipFile(work / 'plugins/PosterProbe.jar', 'w') as jar:
-    jar.writestr('plugin.yml', 'name: PosterProbe\nversion: 1\nmain: dev.spa.ecolife.poster.PaperPosterProbe\napi-version: "26.1.2"\ndepend: [EcoLifeAssist]\n')
+    jar.writestr('plugin.yml', 'name: PosterProbe\nversion: 1\nmain: dev.spa.ecolife.poster.PaperPosterProbe\napi-version: "26.2"\ndepend: [EcoLifeAssist]\n')
     for file in (root / 'target/test-classes/dev/spa/ecolife/poster').glob('PaperPosterProbe*.class'):
         jar.write(file, 'dev/spa/ecolife/poster/' + file.name)
 for phase in ('initial', 'restart', 'withdrawn'):

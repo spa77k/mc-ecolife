@@ -28,8 +28,8 @@ PaperMC サーバー向けの、プレイヤーの継続的なログインとコ
 
 | 項目 | 要件 |
 | --- | --- |
-| **対象サーバー** | PaperMC 26.1.2 |
-| **対象 API** | Paper API `26.1.2.build.74-stable` |
+| **対象サーバー** | PaperMC 26.2 |
+| **対象 API** | Paper API `26.2.build.129-stable` |
 | **Java** | Java 25 |
 | **ビルドツール** | Maven |
 | **メインクラス** | `dev.spa.ecolife.EcoLifeAssistPlugin` |

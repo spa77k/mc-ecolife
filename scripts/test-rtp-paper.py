@@ -17,7 +17,7 @@ if work.exists():
 for name in ('libraries', 'cache', 'versions'):
     if (source / name).exists():
         shutil.copytree(source / name, work / name)
-shutil.copy2(source / 'paper-26.1.2-74.jar', work / 'paper.jar')
+shutil.copy2(source / 'paper-26.2-129.jar', work / 'paper.jar')
 shutil.copy2(source / 'eula.txt', work / 'eula.txt')
 shutil.copy2(root / 'target/ecolifeassist-1.0.0.jar', work / 'plugins/EcoLifeAssist.jar')
 for name in ('Vault.jar', 'EssentialsX-2.22.0.jar'):
@@ -32,7 +32,7 @@ for name in ('Vault.jar', 'EssentialsX-2.22.0.jar'):
     'generate-structures=false\n')
 with zipfile.ZipFile(work / 'plugins/RtpProbe.jar', 'w') as jar:
     jar.writestr('plugin.yml', 'name: RtpProbe\nversion: 1\n'
-                'main: dev.spa.ecolife.rtp.PaperRtpProbe\napi-version: "26.1.2"\n'
+                'main: dev.spa.ecolife.rtp.PaperRtpProbe\napi-version: "26.2"\n'
                 'depend: [EcoLifeAssist, Vault, Essentials]\n')
     for file in (root / 'target/test-classes/dev/spa/ecolife/rtp').glob('PaperRtpProbe*.class'):
         jar.write(file, 'dev/spa/ecolife/rtp/' + file.name)

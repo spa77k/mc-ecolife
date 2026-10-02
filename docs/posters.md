@@ -62,7 +62,7 @@ posters:
 ## 検証
 
 - `mvn -B package`: 画像の分割順・縦横比・余白・入力制限と既存単体テスト。
-- `python3 scripts/test-poster-paper.py`: Paper 26.1.2 / Java 25、`target/poster-paper-smoke`、`127.0.0.1:25580`。テスト用Playerで一覧・ページ切替・権限・満杯時の配布拒否・タイル配布・ID再利用・再起動後の描画復元・一覧から取り下げた画像の保持を確認する。
+- `python3 scripts/test-poster-paper.py`: Paper 26.2 / Java 25、`target/poster-paper-smoke`、`127.0.0.1:25580`。テスト用Playerで一覧・ページ切替・権限・満杯時の配布拒否・タイル配布・ID再利用・再起動後の描画復元・一覧から取り下げた画像の保持を確認する。
 - テスト用Playerは実クライアントではない。Java/Bedrockクライアントの画面での見え方、額縁への配置、既存の土地保護プラグインとの組み合わせは別途実機確認が必要。
 
-API参照: [Paper MapView](https://jd.papermc.io/paper/26.1.2/org/bukkit/map/MapView.html)、[MapRenderer](https://jd.papermc.io/paper/26.1.2/org/bukkit/map/MapRenderer.html)。
+API参照: [Paper MapView](https://jd.papermc.io/paper/26.2/org/bukkit/map/MapView.html)、[MapRenderer](https://jd.papermc.io/paper/26.2/org/bukkit/map/MapRenderer.html)。

@@ -38,7 +38,7 @@ if work.exists():
 for name in ('libraries', 'cache', 'versions'):
     if (source / name).exists():
         shutil.copytree(source / name, work / name)
-shutil.copy2(source / 'paper-26.1.2-74.jar', work / 'paper.jar')
+shutil.copy2(source / 'paper-26.2-129.jar', work / 'paper.jar')
 shutil.copy2(source / 'eula.txt', work / 'eula.txt')
 shutil.copy2(root / 'target/ecolifeassist-1.0.0.jar', work / 'plugins/EcoLifeAssist.jar')
 # 設置者の検索まで確かめるときは、本番と同じ CoreProtect のJARを指定する
@@ -64,7 +64,7 @@ config = config[:start] + f'''automation-watch:
 port = os.environ.get('AUTOMATION_TEST_PORT', '25584')
 (work / 'server.properties').write_text(f'server-ip=127.0.0.1\nserver-port={port}\nonline-mode=false\nview-distance=2\nsimulation-distance=2\nlevel-type=minecraft:flat\ngenerate-structures=false\nspawn-monsters=false\n')
 with zipfile.ZipFile(work / 'plugins/AutomationProbe.jar', 'w') as jar:
-    jar.writestr('plugin.yml', 'name: AutomationProbe\nversion: 1\nmain: dev.spa.ecolife.PaperAutomationProbe\napi-version: "26.1.2"\ndepend: [EcoLifeAssist]\nsoftdepend: [CoreProtect]\n')
+    jar.writestr('plugin.yml', 'name: AutomationProbe\nversion: 1\nmain: dev.spa.ecolife.PaperAutomationProbe\napi-version: "26.2"\ndepend: [EcoLifeAssist]\nsoftdepend: [CoreProtect]\n')
     for file in (root / 'target/test-classes/dev/spa/ecolife').glob('PaperAutomationProbe*.class'):
         jar.write(file, 'dev/spa/ecolife/' + file.name)
 

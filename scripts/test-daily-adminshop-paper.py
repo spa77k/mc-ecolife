@@ -19,7 +19,7 @@ if work.exists():
 for name in ('libraries', 'cache', 'versions'):
     if (source / name).exists():
         shutil.copytree(source / name, work / name)
-shutil.copy2(source / 'paper-26.1.2-74.jar', work / 'paper.jar')
+shutil.copy2(source / 'paper-26.2-129.jar', work / 'paper.jar')
 shutil.copy2(source / 'eula.txt', work / 'eula.txt')
 for name in ('Vault.jar', 'EssentialsX-2.22.0.jar'):
     shutil.copy2(source / 'plugins' / name, work / 'plugins' / name)
@@ -28,7 +28,7 @@ shutil.copy2(root / 'target/ecolifeassist-1.0.0.jar', work / 'plugins/EcoLifeAss
 shutil.copy2(root.parent / 'spsmc-infra/plugins/AdminShop/config.yml', work / 'plugins/AdminShop/config.yml')
 (work / 'server.properties').write_text('server-ip=127.0.0.1\nserver-port=25582\nonline-mode=false\nview-distance=2\nsimulation-distance=2\nlevel-type=minecraft:flat\ngenerate-structures=false\n')
 with zipfile.ZipFile(work / 'plugins/DailyAdminShopProbe.jar', 'w') as jar:
-    jar.writestr('plugin.yml', 'name: DailyAdminShopProbe\nversion: 1\nmain: dev.spa.ecolife.PaperDailyAdminShopProbe\napi-version: "26.1.2"\ndepend: [EcoLifeAssist]\n')
+    jar.writestr('plugin.yml', 'name: DailyAdminShopProbe\nversion: 1\nmain: dev.spa.ecolife.PaperDailyAdminShopProbe\napi-version: "26.2"\ndepend: [EcoLifeAssist]\n')
     for file in (root / 'target/test-classes/dev/spa/ecolife').glob('PaperDailyAdminShopProbe*.class'):
         jar.write(file, 'dev/spa/ecolife/' + file.name)
 for phase in ('with-adminshop', 'without-adminshop'):

@@ -7,7 +7,7 @@ PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_DIR"
 
 SERVER_DIR="server-data"
-PAPER_JAR="paper-26.1.2-74.jar"
+PAPER_JAR="paper-26.2-129.jar"
 JAVA_BIN="${JAVA_BIN:-/opt/homebrew/opt/openjdk/bin/java}"
 
 if [[ ! -x "$JAVA_BIN" ]]; then

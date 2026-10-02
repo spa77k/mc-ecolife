@@ -85,7 +85,7 @@ python3 scripts/test-invite-paper.py
 
 JUnitでSQLiteの再オープン、改名、初参加判定保持、IP履歴、取り消し、結果不明の送金確定を検証する。
 
-Paper 26.1.2 build 74 / Java 25 / Vault / EssentialsX / McLevel / LuckPerms の隔離サーバーは `target/invite-paper-smoke`、待受は `127.0.0.1:25579`。本体の実コマンド・イベント・GUI生成を、テスト用Playerアダプターで駆動する。McLevel公開APIの未保存値取得・再起動後の復元、7199秒/7200秒境界、バニラ統計だけが増えた放置時の支払い拒否、McLevel停止・未導入・旧API時の登録/支払い保留と復旧、通常の報酬入金、同一IPの登録・報酬成立、接続情報なしの登録、旧IP保留の再開、改名、二重払い防止、片側失敗と手動復旧、再起動、Vaultなしでの起動を確認する。
+Paper 26.2 build 129 / Java 25 / Vault / EssentialsX / McLevel / LuckPerms の隔離サーバーは `target/invite-paper-smoke`、待受は `127.0.0.1:25579`。本体の実コマンド・イベント・GUI生成を、テスト用Playerアダプターで駆動する。McLevel公開APIの未保存値取得・再起動後の復元、7199秒/7200秒境界、バニラ統計だけが増えた放置時の支払い拒否、McLevel停止・未導入・旧API時の登録/支払い保留と復旧、通常の報酬入金、同一IPの登録・報酬成立、接続情報なしの登録、旧IP保留の再開、改名、二重払い防止、片側失敗と手動復旧、再起動、Vaultなしでの起動を確認する。
 
 実クライアントのログイン・実際の統計加算・GUIクリックの表示確認、およびPlayit/Geyser経由の接続元確認は、この自動検証には含まない。
 

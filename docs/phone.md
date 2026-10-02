@@ -26,7 +26,7 @@
 
 ## テクスチャ
 
-`assets/phone/smartphone.png` が共通の32×32ドット絵。`python3 scripts/build-phone-packs.py` でJava用 `target/ecolife-phone-java.zip` と統合版用 `target/ecolife-phone-bedrock.mcpack` を生成する。Javaパックは `ecolife:smartphone` のアイテムモデル、統合版はGeyserのカスタムアイテムマッピングで時計からスマホへ変換する。Javaパックの対象はMinecraft 26.1（リソースパック形式84）。
+`assets/phone/smartphone.png` が共通の32×32ドット絵。`python3 scripts/build-phone-packs.py` でJava用 `target/ecolife-phone-java.zip` と統合版用 `target/ecolife-phone-bedrock.mcpack` を生成する。Javaパックは `ecolife:smartphone` のアイテムモデル、統合版はGeyserのカスタムアイテムマッピングで時計からスマホへ変換する。Javaパックの対象はMinecraft 26.2（リソースパック形式88）。
 
 リリースではJava用zipを既存の `v1.0.0` に添付し、インフラのComposeでURLとSHA-1を固定する。統合版用mcpackとマッピングは `spsmc-infra/plugins/Geyser-Spigot/` にGit管理し、起動時に同期する。リリースやインフラ設定の更新だけでは本番サーバーに反映されない。
 

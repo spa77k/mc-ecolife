@@ -12,7 +12,7 @@ SPSMC 用の「毎日の動機づけ」プラグイン。第一弾はログイ�
 
 | 領域 | 現状 | 判断 |
 | --- | --- | --- |
-| 導入先 | SPSMC 本番（Paper 26.1.2、Geyser で Bedrock も接続） | Dockerfile へ SHA-256 固定で組み込む |
+| 導入先 | SPSMC 本番（Paper 26.2、Geyser で Bedrock も接続） | Dockerfile へ SHA-256 固定で組み込む |
 | 通貨 | EssentialsX（`S` 後置）+ Jobs Reborn | 今回は現金を配らないため Vault 依存を持たない |
 | 稼ぎ | Jobs Reborn（駆け出しで時給およそ 1000S） | 報酬アイテムの価値はここを基準に決める |
 | プレイヤー店 | QuickShop-Hikari | 相場を壊すアイテムは配らない |
@@ -169,6 +169,6 @@ Java 版とは別人として数えている。サーバー内で一意なので
 
 ## 2026-09-15: 友達招待の統合
 
-既存プレイヤーによる友達招待をEcoLifeAssist 1.0.0へ統合する。独立したmc-inviteは作らない。Paper 26.1.2 / Java 25、Vault通貨報酬（紹介者2000S・新規1000S）、新規の累計2時間で成立、同一IP拒否、UUIDで紐づけ、SQLite保存、チャットとチェストGUI、管理者救済、SPSMCInsight向けカスタムイベントを実装する。詳細と運用上の制約は `docs/invite.md` を参照。
+既存プレイヤーによる友達招待をEcoLifeAssist 1.0.0へ統合する。独立したmc-inviteは作らない。Paper 26.2 / Java 25、Vault通貨報酬（紹介者2000S・新規1000S）、新規の累計2時間で成立、同一IP拒否、UUIDで紐づけ、SQLite保存、チャットとチェストGUI、管理者救済、SPSMCInsight向けカスタムイベントを実装する。詳細と運用上の制約は `docs/invite.md` を参照。
 
 報酬額と時間はconfigで変更可能。全体アナウンス・招待成立のDiscord投稿・外部流入計測・孫紹介・MCAuth変更は追加しない。GitHub ReleaseのJARをspsmc-infraのDockerfileへSHA-256固定で組み込む。本番の再起動はこの実装作業に含めない。
