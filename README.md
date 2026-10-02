@@ -1,7 +1,7 @@
 # EcoLifeAssist（エコライフアシスト）
 
 PaperMC サーバー向けの、プレイヤーの継続的なログインとコミュニティ活性化を支援するプラグインです。
-**カレンダー式ログインボーナス**、**友達招待システム**、**Discord通知連携**、**画像ポスター**、**自動化装置の検出**の機能を提供します。
+**カレンダー式ログインボーナス**、**友達招待システム**、**Discord通知連携**、**画像ポスター**、**自動化装置の検出**、**石製造機の報酬停止**の機能を提供します。
 一般プレイヤー向けの主要機能をまとめた、右クリックで開く **スマホ** も配布します。死亡時の持ち物を預かる **お墓** もあります。
 （デイリー任務や実績など、毎日のプレイ動機につながる機能も今後順次追加予定です）
 
@@ -17,6 +17,7 @@ PaperMC サーバー向けの、プレイヤーの継続的なログインとコ
   - [友達招待システム](#友達招待システム)
   - [Discord通知連携](#discord通知連携)
   - [自動化装置の検出](#自動化装置の検出)
+  - [石製造機の報酬停止](#石製造機の報酬停止)
 - [コマンドと権限](#コマンドと権限)
 - [保存データ](#保存データ)
 - [ビルドとテスト](#ビルドとテスト)
@@ -33,7 +34,7 @@ PaperMC サーバー向けの、プレイヤーの継続的なログインとコ
 | **Java** | Java 25 |
 | **ビルドツール** | Maven |
 | **メインクラス** | `dev.spa.ecolife.EcoLifeAssistPlugin` |
-| **任意依存 (softdepend)** | [Vault](https://github.com/MilkBowl/VaultAPI) ＋ 経済プラグイン、McLevel、AdminShop<br>※友達招待の通貨報酬・時間判定、14マス目の護符報酬に使用します。AdminShopが利用できない場合も他のマスやDiscord通知は動作します。 |
+| **任意依存 (softdepend)** | [Vault](https://github.com/MilkBowl/VaultAPI) ＋ 経済プラグイン、McLevel、AdminShop、Jobs<br>※友達招待の通貨報酬・時間判定、14マス目の護符報酬、石製造機の報酬停止に使用します。AdminShopが利用できない場合も他のマスやDiscord通知は動作します。 |
 
 ---
 
@@ -194,6 +195,15 @@ Bukkitのカスタムイベント（`getNotifyKind()` および `getNotifyPlaceh
 - **設定**: `config.yml` の `automation-watch:`。既定は無効です。`webhook-url` は一般向け通知と分け、`${CFG_ECOLIFE_AUTOMATION_WEBHOOK}` を使います。URLが未設定でも検出はサーバーログとDBに残り、設定後に未送信分を送ります。
 - **確認**: `/ecolife automation status` で状況、`/ecolife automation test` でテスト送信。
 
+### 石製造機の報酬停止
+
+溶岩と水（玄武岩は溶岩と青氷）で生まれた石・丸石・玄武岩を掘っても、Jobs の職業報酬（お金・ポイント・職業経験値）を出しません。自然の石やプレイヤーが置いた石の報酬は変わりません。
+
+- **しくみ**: 石が生まれた場所（`BlockFormEvent`）をチャンクの保存データに記録し、その場所のブロックを掘る・TNTで壊すときの Jobs の支払い前イベント（`JobsPrePaymentEvent`）を取り消します。Jobs へのコンパイル時依存は持たず、イベントを名前で購読します。
+- **追いかける範囲**: ピストンで動いた石は動いた先へ記録を付け替えます。掘る・爆発で壊れた場所の記録は消します。記録はチャンクと一緒に保存されるため、再起動後も効きます。
+- **対象外**: Jobs のデイリークエストの進み具合は止めません。Jobs が入っていないときは何もしません。
+- **設定**: `config.yml` の `generator-stone:`。既定は有効で、対象は `STONE`・`COBBLESTONE`・`BASALT` です。
+
 ---
 
 ## コマンドと権限
@@ -271,6 +281,12 @@ mvn -B package
   python3 scripts/test-invite-paper.py
   ```
   Paper隔離サーバー（`target/invite-paper-smoke`）上で、実コマンド・イベント・GUI生成を駆動し、通常の報酬入金、2時間境界、同一IPの登録・報酬成立と旧IP保留の再開、改名対応、二重払い防止、片側失敗と手動復旧、Vault未導入時の起動などを検証します。
+
+- **石製造機の報酬停止の自動テスト**:
+  ```sh
+  python3 scripts/test-generator-stone-paper.py
+  ```
+  Paper隔離サーバー（`target/generator-stone-paper-smoke`）に本番と同じ Jobs・CMILib を入れ、溶岩と水で石を生ませて、Jobs の支払い前イベントが取り消されるかを確かめます。自然の石・設置の報酬は取り消さないこと、ピストン移動・再起動・爆発後の記録も検証します。JARの既定は `../spsmc-infra/data/plugins/` で、`JOBS_JAR`・`CMILIB_JAR` で変えられます。
 
 ---
 

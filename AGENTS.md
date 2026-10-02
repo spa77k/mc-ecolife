@@ -83,6 +83,12 @@
 - Webhookは一般向けの `notify.webhook-url` と分け、`${CFG_ECOLIFE_AUTOMATION_WEBHOOK}` を使う。座標が載るため一般チャンネルへ流さない。
 - 変更時は `mvn -B package` と `python3 scripts/test-automation-paper.py` を実行する。隔離Paperは `target/automation-paper-smoke`、待受は既定で `127.0.0.1:25584`（`AUTOMATION_TEST_PORT` で変更）。設置者の検索まで確かめるときは `COREPROTECT_JAR` に本番と同じCoreProtectのJARを指定する。放置していないプレイヤーがいる場合に通知しないことは、テスト用Playerでは未検証。
 
+## 石製造機の報酬停止
+
+- 2026-10-02の指定: 溶岩と水で生まれた石を掘っても、Jobsの職業報酬を出さない。自然の石・設置した石の報酬は変えない。
+- 生まれた場所はチャンクのPersistentDataContainerに記録し、`JobsPrePaymentEvent`（BREAK・TNTBREAK）を取り消す。取り消すとJobsはお金・ポイント・職業経験値をすべて0にする。Jobsへのコンパイル時依存は持たない。
+- 変更時は `mvn -B package` と `python3 scripts/test-generator-stone-paper.py` を実行する。隔離Paperは `target/generator-stone-paper-smoke`、待受は既定で `127.0.0.1:25587`（`GENERATOR_TEST_PORT` で変更）。支払い前イベントはテスト用に直接発行しており、実クライアントで掘ったときの確認とは区別して報告する。
+
 ## お墓
 
 - 2026-10-02の指定: 死亡時の持ち物を預かるお墓をEcoLifeAssistに入れる（外部プラグインのAxGravesは使わない）。墓石のテクスチャはCodex CLIの画像生成で作る。

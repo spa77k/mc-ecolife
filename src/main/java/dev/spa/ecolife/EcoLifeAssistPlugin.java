@@ -27,6 +27,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     private NotifyBridge notifyBridge;
 
     private AutomationWatch automation;
+    private GeneratorStoneGuard generatorStone;
 
     @Override
     public void onEnable() {
@@ -46,6 +47,9 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         automation = new AutomationWatch(this);
         automation.register();
         automation.start(AutomationConfig.load(this));
+
+        generatorStone = new GeneratorStoneGuard(this);
+        generatorStone.register();
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
         phone = new PhoneService(this);
@@ -179,6 +183,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
 
         automation.stop();
         automation.start(AutomationConfig.load(this));
+        generatorStone.reload();
     }
 
     BonusConfig bonusConfig() {
