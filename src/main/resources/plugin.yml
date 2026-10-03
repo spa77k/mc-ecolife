@@ -12,7 +12,7 @@ commands:
     usage: /phone [get]
   rtp:
     description: 安全な地点へランダムに移動する
-    usage: /rtp [world <ワールド>|player <名前> <ワールド>]
+    usage: /rtp [world <ワールド>|player <名前> <ワールド>|resetfree]
   poster:
     description: 運営が用意したポスターを選んで受け取る
     usage: /poster [reload]
@@ -42,7 +42,7 @@ permissions:
     description: 別のワールドへランダムテレポートする
     default: op
   ecolife.rtp.admin:
-    description: 他のプレイヤーをランダムテレポートする
+    description: 他のプレイヤーをランダムテレポートし、全員の無料枠を戻す
     default: op
   ecolife.poster:
     description: ポスター一覧と受け取り

@@ -11,7 +11,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-/** /rtp と初回資源入場用の /rtp player <名前> <ワールド>。 */
+/** /rtp と初回資源入場用の /rtp player <名前> <ワールド>、無料枠を戻す /rtp resetfree。 */
 public final class RtpCommand implements CommandExecutor, TabCompleter {
     private final RtpService service;
 
@@ -58,7 +58,16 @@ public final class RtpCommand implements CommandExecutor, TabCompleter {
             if (service.start(player, world, true)) sender.sendMessage("§a移動先の探索を開始しました。");
             return true;
         }
-        sender.sendMessage("§e使い方: /rtp、/rtp world <ワールド>、/rtp player <名前> <ワールド>");
+        if (args.length == 1 && args[0].equalsIgnoreCase("resetfree")) {
+            if (!sender.hasPermission("ecolife.rtp.admin")) {
+                sender.sendMessage("§cこのコマンドを使う権限がありません。");
+                return true;
+            }
+            int count = service.resetFreeUses();
+            sender.sendMessage("§aRTPの無料枠を戻しました（" + count + "人分）。");
+            return true;
+        }
+        sender.sendMessage("§e使い方: /rtp、/rtp world <ワールド>、/rtp player <名前> <ワールド>、/rtp resetfree");
         return true;
     }
 
@@ -66,9 +75,9 @@ public final class RtpCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                       @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("world", "player").stream()
+            return List.of("world", "player", "resetfree").stream()
                     .filter(option -> (option.equals("world") && sender.hasPermission("ecolife.rtp.world"))
-                            || (option.equals("player") && sender.hasPermission("ecolife.rtp.admin")))
+                            || (!option.equals("world") && sender.hasPermission("ecolife.rtp.admin")))
                     .filter(option -> option.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("player") && sender.hasPermission("ecolife.rtp.admin")) {

@@ -163,9 +163,28 @@ public final class PaperRtpProbe extends JavaPlugin {
             Bukkit.getScheduler().runTaskLater(this, () -> {
                 try {
                     check(teleports == 2, "admin teleport after restart");
-                    pass();
+                    check(Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ecolifeassist:rtp resetfree"),
+                            "console resets free uses");
+                    clearCooldown();
+                    Bukkit.getPluginCommand("ecolifeassist:rtp").execute(player, "rtp", new String[0]);
+                    Bukkit.getScheduler().runTaskLater(this, this::verifyFreeReset, 250L);
                 } catch (Throwable error) { fail(error); }
             }, 100L);
+        } catch (Throwable error) { fail(error); }
+    }
+
+    private void verifyFreeReset() {
+        try {
+            check(teleports == 3, "free RTP after reset teleported");
+            check(economy.getBalance(player) == 0, "free RTP after reset not charged");
+            clearCooldown();
+            Bukkit.getPluginCommand("ecolifeassist:rtp").execute(player, "rtp", new String[0]);
+            Bukkit.getScheduler().runTaskLater(this, () -> {
+                try {
+                    check(teleports == 3, "free use consumed again after reset");
+                    pass();
+                } catch (Throwable error) { fail(error); }
+            }, 250L);
         } catch (Throwable error) { fail(error); }
     }
 

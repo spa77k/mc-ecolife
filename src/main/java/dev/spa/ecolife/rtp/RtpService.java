@@ -52,7 +52,7 @@ public final class RtpService {
             try {
                 if (freeSaved.getBoolean(key)) freeUsed.add(UUID.fromString(key));
             } catch (IllegalArgumentException ignored) {
-                plugin.getLogger().warning("不正なRTP初回利用記録を無視しました: " + key);
+                plugin.getLogger().warning("不正なRTP無料利用記録を無視しました: " + key);
             }
         }
         reload();
@@ -108,6 +108,14 @@ public final class RtpService {
             plugin.getServer().getScheduler().runTaskLater(plugin,
                     () -> countdown(request, seconds - 1), 20L);
         }
+    }
+
+    /** 全員の無料枠を戻す。毎週の資源エンドリセット時にコンソールから呼ぶ。 */
+    public int resetFreeUses() {
+        int count = freeUsed.size();
+        freeUsed.clear();
+        saveFreeUsed();
+        return count;
     }
 
     public void cancel(Player player) {
@@ -284,7 +292,7 @@ public final class RtpService {
         try {
             yaml.save(freeUseFile);
         } catch (IOException e) {
-            plugin.getLogger().log(Level.SEVERE, "RTP初回利用記録を保存できませんでした", e);
+            plugin.getLogger().log(Level.SEVERE, "RTP無料利用記録を保存できませんでした", e);
         }
     }
 

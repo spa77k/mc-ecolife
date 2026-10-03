@@ -48,4 +48,4 @@ for phase in ('initial', 'restart'):
             print(line, flush=True)
     if result.returncode or 'RTP_PROBE_PASS' not in output or 'RTP_PROBE_FAIL' in output:
         raise SystemExit('FAILED: ' + str(work / (phase + '.log')))
-print('PASS: RTP titles, first use free, 100S payment, refund on failure, cooldown, admin bypass and restart persistence.')
+print('PASS: RTP titles, first use free, 100S payment, refund on failure, cooldown, admin bypass, restart persistence and free use reset.')
