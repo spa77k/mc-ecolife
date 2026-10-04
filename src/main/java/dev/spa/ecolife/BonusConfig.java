@@ -11,31 +11,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /** config.yml を読んだ結果。読み込み後は変わらない。 */
-final class BonusConfig {
-
-    private final ZoneId zone;
-    private final int resetHour;
-    private final boolean enabled;
-    private final long claimDelayTicks;
-    private final boolean broadcastPerfectMonth;
-    private final boolean title;
-    private final String soundKey;
-    private final RewardTable rewards;
-    private final MonthlyRewards monthly;
-
-    private BonusConfig(ZoneId zone, int resetHour, boolean enabled, long claimDelayTicks,
-                        boolean broadcastPerfectMonth, boolean title, String soundKey, RewardTable rewards,
-                        MonthlyRewards monthly) {
-        this.zone = zone;
-        this.resetHour = resetHour;
-        this.enabled = enabled;
-        this.claimDelayTicks = claimDelayTicks;
-        this.broadcastPerfectMonth = broadcastPerfectMonth;
-        this.title = title;
-        this.soundKey = soundKey;
-        this.rewards = rewards;
-        this.monthly = monthly;
-    }
+record BonusConfig(ZoneId zone, int resetHour, boolean enabled, long claimDelayTicks,
+                   boolean broadcastPerfectMonth, boolean title, String soundKey, RewardTable rewards,
+                   MonthlyRewards monthly) {
 
     static BonusConfig load(JavaPlugin plugin) {
         FileConfiguration config = plugin.getConfig();
@@ -95,42 +73,5 @@ final class BonusConfig {
             next = next.plusDays(1);
         }
         return Duration.between(now, next);
-    }
-
-    ZoneId zone() {
-        return zone;
-    }
-
-    int resetHour() {
-        return resetHour;
-    }
-
-    boolean enabled() {
-        return enabled;
-    }
-
-    long claimDelayTicks() {
-        return claimDelayTicks;
-    }
-
-    boolean broadcastPerfectMonth() {
-        return broadcastPerfectMonth;
-    }
-
-    boolean title() {
-        return title;
-    }
-
-    String soundKey() {
-        return soundKey;
-    }
-
-    /** 毎月同じ報酬表。monthly-rewards.start より前の月と、抽選を使わないときに配る。 */
-    RewardTable rewards() {
-        return rewards;
-    }
-
-    MonthlyRewards monthly() {
-        return monthly;
     }
 }

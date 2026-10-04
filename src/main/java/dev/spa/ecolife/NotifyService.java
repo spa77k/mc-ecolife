@@ -38,7 +38,7 @@ final class NotifyService {
 
     private volatile NotifyConfig config;
     private volatile DiscordWebhook webhook;
-    private volatile BlockingQueue<NotifyMessage> queue;
+    private volatile BlockingQueue<String> queue;
     private volatile boolean active;
     private volatile boolean running;
     private Thread worker;
@@ -102,7 +102,7 @@ final class NotifyService {
             return;
         }
         String content = render(source.template(), placeholders);
-        if (!queue.offer(new NotifyMessage(content))) {
+        if (!queue.offer(content)) {
             recordDrop();
             return;
         }
@@ -114,7 +114,7 @@ final class NotifyService {
         if (!active) {
             return false;
         }
-        return queue.offer(new NotifyMessage("🔔 EcoLifeAssist の Discord通知テスト送信です。"));
+        return queue.offer("🔔 EcoLifeAssist の Discord通知テスト送信です。");
     }
 
     Status status() {
@@ -195,7 +195,7 @@ final class NotifyService {
 
     private void runWorker() {
         while (running) {
-            NotifyMessage message;
+            String message;
             try {
                 message = queue.take();
             } catch (InterruptedException e) {
@@ -203,7 +203,7 @@ final class NotifyService {
                 break;
             }
             // 送信できたものだけを送信件数として数える。失敗を成功に混ぜると status が設定調べの役に立たない
-            if (webhook.send(config.webhookUrl(), config.username(), config.avatarUrl(), message.content())) {
+            if (webhook.send(config.webhookUrl(), config.username(), config.avatarUrl(), message)) {
                 totalSent.incrementAndGet();
             } else {
                 totalFailed.incrementAndGet();

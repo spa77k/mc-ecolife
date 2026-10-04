@@ -202,10 +202,6 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         return bonuses;
     }
 
-    NotifyConfig notifyConfig() {
-        return notifyConfig;
-    }
-
     NotifyService notifyService() {
         return notifyService;
     }

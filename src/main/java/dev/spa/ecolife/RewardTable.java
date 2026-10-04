@@ -146,11 +146,6 @@ final class RewardTable {
         return copies;
     }
 
-    /** その日のマスの中身の書き方。保存や記録に使う。 */
-    List<RewardEntry> entriesFor(int day) {
-        return byDay.getOrDefault(day, List.of());
-    }
-
     int configuredDays() {
         return byDay.size();
     }
