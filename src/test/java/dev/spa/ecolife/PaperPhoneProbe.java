@@ -103,6 +103,8 @@ public final class PaperPhoneProbe extends JavaPlugin {
         check(user.menu.getItem(16).getType() == Material.FILLED_MAP, "SpaMap app");
         check(user.menu.getItem(26).getType() == Material.PLAYER_HEAD, "invite on top");
         Map<Integer, Consumer<Player>> actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        String inviteLore = String.valueOf(user.menu.getItem(26).getItemMeta().lore());
+        check(inviteLore.contains("2000S") && inviteLore.contains("1000S"), "invite rewards in lore");
         user.lastCommand = null;
         actions.get(26).accept(user.player);
         check("invite".equals(user.lastCommand), "invite shortcut on top");

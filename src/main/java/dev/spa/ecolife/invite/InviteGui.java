@@ -127,8 +127,10 @@ final class InviteGui implements Listener {
                                 if (slot == 45) open(player, view.ranking, view.page - 1);
                                 else if (slot == 53) open(player, view.ranking, view.page + 1);
                                 else if (slot == 49) open(player, !view.ranking, 0);
-                                else if (slot == 47)
-                                    service.say(player, "gui-code-help", "name", player.getName());
+                                else if (slot == 47) {
+                                    player.closeInventory();
+                                    service.share(player);
+                                }
                             } catch (Exception e) {
                                 service.fail(e);
                                 player.closeInventory();

@@ -156,7 +156,7 @@ final class PhoneService implements Listener, CommandExecutor {
                 item(holder, 14, Material.PAPER, "Spa Mail", "運営へフィードバックを送る", this::startFeedback);
                 command(holder, 16, Material.FILLED_MAP, "SpaMap", "ロビーに戻る", "lobby");
                 page(holder, 22, Material.CHEST, "その他の機能", "移動・記録・案内もここから", Page.MORE);
-                command(holder, 26, Material.PLAYER_HEAD, "友達招待", "招待コード・実績を見る", "invite");
+                command(holder, 26, Material.PLAYER_HEAD, "友達招待", inviteLore(), "invite");
             }
             case SPAZON -> {
                 command(holder, 11, Material.GOLD_INGOT, "オークション", "プレイヤーの出品を見る", "ah");
@@ -272,6 +272,16 @@ final class PhoneService implements Listener, CommandExecutor {
             case TPA_TARGETS -> "移動先を選ぶ"; case TPAHERE_TARGETS -> "呼ぶ相手を選ぶ";
             case PLAY -> "遊びと記録"; case HELP -> "案内と相談"; case SET_HOME -> "ホーム登録の確認";
         };
+    }
+
+    private String inviteLore() {
+        double inviter = plugin.getConfig().getDouble("invite.rewards.inviter", 2000);
+        double newcomer = plugin.getConfig().getDouble("invite.rewards.newcomer", 1000);
+        return "紹介すると報酬（紹介者" + coins(inviter) + "・新規" + coins(newcomer) + "）";
+    }
+
+    private static String coins(double amount) {
+        return (amount == Math.rint(amount) ? String.valueOf((long) amount) : String.valueOf(amount)) + "S";
     }
 
     private void item(PhoneMenu menu, int slot, Material material, String title, String lore,

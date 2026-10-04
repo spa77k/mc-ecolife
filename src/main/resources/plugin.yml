@@ -22,7 +22,7 @@ commands:
     permission: ecolife.grave
   invite:
     description: 友達招待と招待実績
-    usage: /invite [名前|top|code 名前|admin]
+    usage: /invite [名前|top|share|code 名前|admin]
   daily:
     description: 今月のログインボーナスの進み具合を見る
     usage: /daily

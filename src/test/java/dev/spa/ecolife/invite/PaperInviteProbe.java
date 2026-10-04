@@ -60,6 +60,7 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         final boolean old;
         final Player player;
         Inventory inventory;
+        final java.util.List<Component> messages = new java.util.ArrayList<>();
 
         User(String name, String ip, boolean old) {
             this.id =
@@ -91,7 +92,12 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
                                                     inventory = (Inventory) args[0];
                                                     yield null;
                                                 }
-                                                case "sendMessage", "sendActionBar" -> null;
+                                                case "sendMessage" -> {
+                                                    if (args != null && args.length > 0 && args[0] instanceof Component c)
+                                                        messages.add(c);
+                                                    yield null;
+                                                }
+                                                case "sendActionBar" -> null;
                                                 case "equals" -> proxy == args[0];
                                                 case "hashCode" -> id.hashCode();
                                                 case "toString" -> name;
@@ -194,6 +200,13 @@ public final class PaperInviteProbe extends JavaPlugin implements Listener {
         require(a.inventory != null && a.inventory.getSize() == 54, "GUI opened");
         require(a.inventory.getItem(0).getType() == Material.EMERALD, "GUI complete invitation");
         require(a.inventory.getItem(47).getType() == Material.NAME_TAG, "GUI code");
+        a.messages.clear();
+        command(plugin, a.player, "share");
+        String shared = String.valueOf(a.messages);
+        require(a.messages.size() == 3, "share sends code, copy button and preview: " + shared);
+        require(shared.contains("copy_to_clipboard"), "share is copyable: " + shared);
+        require(shared.contains("/invite " + a.name) && shared.contains("2000S") && shared.contains("1000S"),
+                "share text has command and rewards");
         command(plugin, Bukkit.getConsoleSender(), "top");
         require(store.top(0).getFirst().name().equals(a.name), "ranking current name");
         User unknownIp = new User("ProbeUnknownIp", "127.0.0.10", false);

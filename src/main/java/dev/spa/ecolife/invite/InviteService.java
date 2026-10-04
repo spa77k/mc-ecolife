@@ -1,6 +1,8 @@
 package dev.spa.ecolife.invite;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 import org.bukkit.*;
@@ -107,11 +109,46 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
         store.person(p.getUniqueId(), p.getName(), eligible, hash);
     }
 
-    Component text(String key, Object... pairs) {
+    private String raw(String key, Object... pairs) {
         String raw = plugin.getConfig().getString("invite.messages." + key, key);
         for (int i = 0; i < pairs.length; i += 2)
             raw = raw.replace("{" + pairs[i] + "}", String.valueOf(pairs[i + 1]));
-        return LegacyComponentSerializer.legacyAmpersand().deserialize(raw);
+        return raw;
+    }
+
+    Component text(String key, Object... pairs) {
+        return LegacyComponentSerializer.legacyAmpersand().deserialize(raw(key, pairs));
+    }
+
+    private static String coins(double amount) {
+        return (amount == Math.rint(amount) ? String.valueOf((long) amount) : String.valueOf(amount))
+                + "S";
+    }
+
+    /** 招待コードと友達へ送る文を、クリックでコピーできる形でチャットに出す。 */
+    void share(Player player) {
+        String name = player.getName();
+        String shareText =
+                raw(
+                        "share-text",
+                        "name",
+                        name,
+                        "inviter",
+                        coins(amount("inviter", 2000)),
+                        "newcomer",
+                        coins(amount("newcomer", 1000)));
+        player.sendMessage(
+                text("share-code", "name", name)
+                        .append(Component.space())
+                        .append(
+                                text("share-copy-code")
+                                        .clickEvent(ClickEvent.copyToClipboard(name))
+                                        .hoverEvent(HoverEvent.showText(text("share-hover-code", "name", name)))));
+        player.sendMessage(
+                text("share-copy-text")
+                        .clickEvent(ClickEvent.copyToClipboard(shareText))
+                        .hoverEvent(HoverEvent.showText(Component.text(shareText))));
+        player.sendMessage(text("share-preview", "text", shareText));
     }
 
     void say(CommandSender sender, String key, Object... pairs) {
@@ -277,6 +314,10 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
                 gui.open(player, false, 0);
                 return true;
             }
+            if (args.length == 1 && args[0].equalsIgnoreCase("share")) {
+                share(player);
+                return true;
+            }
             if (args.length == 1) {
                 bind(sender, player, store.find(args[0]), false);
                 return true;
@@ -385,7 +426,7 @@ public final class InviteService implements Listener, CommandExecutor, TabComple
             CommandSender sender, Command c, String label, String[] args) {
         if (args.length == 1)
             return java.util.stream.Stream.concat(
-                            java.util.stream.Stream.of("top", "code"),
+                            java.util.stream.Stream.of("top", "code", "share"),
                             Bukkit.getOnlinePlayers().stream().map(Player::getName))
                     .filter(
                             s ->
