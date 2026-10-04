@@ -101,7 +101,11 @@ public final class PaperPhoneProbe extends JavaPlugin {
         check(user.menu.getItem(10).getType() == Material.IRON_PICKAXE, "Spa Job app");
         check(user.menu.getItem(14).getType() == Material.PAPER, "Spa Mail app");
         check(user.menu.getItem(16).getType() == Material.FILLED_MAP, "SpaMap app");
+        check(user.menu.getItem(26).getType() == Material.PLAYER_HEAD, "invite on top");
         Map<Integer, Consumer<Player>> actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        user.lastCommand = null;
+        actions.get(26).accept(user.player);
+        check("invite".equals(user.lastCommand), "invite shortcut on top");
         actions.get(12).accept(user.player);
         check(user.menu.getItem(11).getType() == Material.GOLD_INGOT, "auction in Spazon");
         check(user.menu.getItem(15).getType() == Material.EMERALD, "admin shop in Spazon");

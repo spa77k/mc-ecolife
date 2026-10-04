@@ -156,6 +156,7 @@ final class PhoneService implements Listener, CommandExecutor {
                 item(holder, 14, Material.PAPER, "Spa Mail", "運営へフィードバックを送る", this::startFeedback);
                 command(holder, 16, Material.FILLED_MAP, "SpaMap", "ロビーに戻る", "lobby");
                 page(holder, 22, Material.CHEST, "その他の機能", "移動・記録・案内もここから", Page.MORE);
+                command(holder, 26, Material.PLAYER_HEAD, "友達招待", "招待コード・実績を見る", "invite");
             }
             case SPAZON -> {
                 command(holder, 11, Material.GOLD_INGOT, "オークション", "プレイヤーの出品を見る", "ah");
