@@ -136,6 +136,8 @@ public final class PaperPhoneProbe extends JavaPlugin {
         actions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
         actions.get(14).accept(user.player);
         check("mv tp resource".equals(user.lastCommand), "resource world opens directly");
+        actions.get(23).accept(user.player);
+        check("mv tp resource2".equals(user.lastCommand), "resource server 2 opens directly");
         user.buildAccess = false;
         user.lastCommand = null;
         actions.get(21).accept(user.player);

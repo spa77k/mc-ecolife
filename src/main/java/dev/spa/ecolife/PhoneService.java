@@ -187,6 +187,7 @@ final class PhoneService implements Listener, CommandExecutor {
                 command(holder, 12, Material.RED_BED, "ホームへ帰る", "登録済みのホームへ移動", "home");
                 page(holder, 13, Material.WHITE_BED, "ホームを登録", "現在地をホームにする（100S）", Page.SET_HOME);
                 world(holder, 14, Material.IRON_PICKAXE, "資源ワールドへ", "資源集めに行く", "resource", null);
+                world(holder, 23, Material.DIAMOND_PICKAXE, "資源サーバー2へ", "毎週日曜に作り直し", "resource2", null);
                 help(holder, 15, Material.MAP, "2か所目のホーム", "番号を指定して使う", "/sethome 2、/home 2");
                 page(holder, 16, Material.PLAYER_HEAD, "相手へ移動を申請", "オンラインの相手を選ぶ", Page.TPA_TARGETS);
                 page(holder, 17, Material.ENDER_EYE, "相手を呼ぶ申請", "オンラインの相手を選ぶ", Page.TPAHERE_TARGETS);
