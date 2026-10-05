@@ -52,6 +52,7 @@ public final class PaperGeneratorStoneProbe extends JavaPlugin {
         Block generator = world.getBlockAt(2, 100, 2);
         Block once = world.getBlockAt(20, 100, 2);
         getLogger().info("GENERATOR_PROBE_FORMED " + generator.getType() + " " + once.getType());
+        chunkChangeIgnored();
         result("generator_break", generator, "BREAK");
         result("generator_tnt", generator, "TNTBREAK");
         result("generator_place", generator, "PLACE");
@@ -95,6 +96,21 @@ public final class PaperGeneratorStoneProbe extends JavaPlugin {
     private void done() {
         getLogger().info("GENERATOR_PROBE_DONE");
         Bukkit.shutdown();
+    }
+
+    /** Jobs のイベントはHandlerListを共有するため、別種のイベントも購読先へ届く。 */
+    private void chunkChangeIgnored() {
+        try {
+            ClassLoader loader = Bukkit.getPluginManager().getPlugin("Jobs").getClass().getClassLoader();
+            Class<?> eventClass = Class.forName("com.gamingmesh.jobs.api.JobsChunkChangeEvent", true, loader);
+            Event event = (Event) eventClass.getConstructor(org.bukkit.entity.Player.class,
+                            org.bukkit.Chunk.class, org.bukkit.Chunk.class)
+                    .newInstance(null, world.getChunkAt(0, 0), world.getChunkAt(1, 0));
+            Bukkit.getPluginManager().callEvent(event);
+            getLogger().info("GENERATOR_PROBE_RESULT chunk_change " + ((Cancellable) event).isCancelled());
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /** Jobs の支払い前イベントをそのブロックで発行し、取り消されたかを出力する。 */

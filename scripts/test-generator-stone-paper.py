@@ -60,6 +60,8 @@ def check(ok, message):
 first = run('first')
 log = (work / 'run-first.log').read_text()
 check('GENERATOR_PROBE_FORMED STONE STONE' in log or 'GENERATOR_PROBE_FORMED COBBLESTONE STONE' in log, '溶岩と水で石が生まれる')
+check(first.get('chunk_change') is False, 'チャンク変更イベントは取り消さない')
+check('石製造機の石の判定に失敗しました' not in log, '別種のJobsイベントでも判定エラーを出さない')
 check(first.get('generator_break') is True, '製造機の石を掘る報酬は取り消す')
 check(first.get('generator_tnt') is True, '製造機の石をTNTで壊す報酬も取り消す')
 check(first.get('generator_place') is False, '設置など掘る以外の報酬は取り消さない')

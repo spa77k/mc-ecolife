@@ -70,7 +70,12 @@ final class GeneratorStoneGuard implements Listener {
         }
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         plugin.getServer().getPluginManager().registerEvent(eventClass, this, EventPriority.HIGHEST,
-                (listener, event) -> onPrePayment(event, getBlock, getActionInfo), plugin, true);
+                (listener, event) -> {
+                    // Jobs の各イベントはBaseEventのHandlerListを共有するため、別種も届く。
+                    if (eventClass.isInstance(event)) {
+                        onPrePayment(event, getBlock, getActionInfo);
+                    }
+                }, plugin, true);
         reload();
     }
 
