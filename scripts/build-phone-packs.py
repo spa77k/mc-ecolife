@@ -3,6 +3,7 @@
 
 The Java pack also carries the grave texture (assets/grave/grave.png, made with Codex image generation).
 Bedrock never sees the grave because Geyser does not translate item displays.
+AdminShop's mystery medicine is included in Java and a separate Bedrock pack.
 """
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
@@ -48,9 +49,9 @@ png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE,
 OUT.mkdir(exist_ok=True)
 
 
-def pack(folder, destination, texture_path, extra=None):
+def pack(folder, destination, texture_path, extra=None, texture=png):
     entries = {p.relative_to(folder).as_posix(): p.read_bytes() for p in folder.rglob("*") if p.is_file()}
-    entries[texture_path] = png
+    entries[texture_path] = texture
     entries.update(extra or {})
     with ZipFile(destination, "w", ZIP_DEFLATED, compresslevel=9) as archive:
         for name, data in sorted(entries.items()):
@@ -60,6 +61,10 @@ def pack(folder, destination, texture_path, extra=None):
             archive.writestr(info, data)
 
 
+medicine = (ROOT / "assets" / "adminshop" / "mystery_medicine.png").read_bytes()
 pack(BASE / "java", OUT / "ecolife-phone-java.zip", "assets/ecolife/textures/item/smartphone.png",
-     {"assets/ecolife/textures/item/grave.png": (ROOT / "assets" / "grave" / "grave.png").read_bytes()})
+     {"assets/ecolife/textures/item/grave.png": (ROOT / "assets" / "grave" / "grave.png").read_bytes(),
+      "assets/adminshop/textures/item/mystery_medicine.png": medicine})
 pack(BASE / "bedrock", OUT / "ecolife-phone-bedrock.mcpack", "textures/items/smartphone.png")
+pack(ROOT / "assets" / "adminshop" / "bedrock", OUT / "adminshop-bedrock.mcpack",
+     "textures/items/mystery_medicine.png", texture=medicine)
