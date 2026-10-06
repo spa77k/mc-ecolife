@@ -4,6 +4,7 @@
 The Java pack also carries the grave texture (assets/grave/grave.png, made with Codex image generation).
 Bedrock never sees the grave because Geyser does not translate item displays.
 AdminShop's mystery medicine is included in Java and a separate Bedrock pack.
+SpaMedal's three medals (assets/spamedal/, made with Codex image generation) are handled the same way.
 """
 from pathlib import Path
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
@@ -62,9 +63,15 @@ def pack(folder, destination, texture_path, extra=None, texture=png):
 
 
 medicine = (ROOT / "assets" / "adminshop" / "mystery_medicine.png").read_bytes()
+medals = {f"medal_{value}": (ROOT / "assets" / "spamedal" / f"medal_{value}.png").read_bytes()
+          for value in (1, 10, 100)}
 pack(BASE / "java", OUT / "ecolife-phone-java.zip", "assets/ecolife/textures/item/smartphone.png",
      {"assets/ecolife/textures/item/grave.png": (ROOT / "assets" / "grave" / "grave.png").read_bytes(),
-      "assets/adminshop/textures/item/mystery_medicine.png": medicine})
+      "assets/adminshop/textures/item/mystery_medicine.png": medicine,
+      **{f"assets/spamedal/textures/item/{name}.png": data for name, data in medals.items()}})
 pack(BASE / "bedrock", OUT / "ecolife-phone-bedrock.mcpack", "textures/items/smartphone.png")
 pack(ROOT / "assets" / "adminshop" / "bedrock", OUT / "adminshop-bedrock.mcpack",
      "textures/items/mystery_medicine.png", texture=medicine)
+pack(ROOT / "assets" / "spamedal" / "bedrock", OUT / "spamedal-bedrock.mcpack",
+     "textures/items/medal_1.png", texture=medals["medal_1"],
+     extra={f"textures/items/{name}.png": data for name, data in medals.items()})
