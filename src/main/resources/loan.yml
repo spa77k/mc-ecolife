@@ -1,0 +1,47 @@
+# 借金（/loan）の設定。
+enabled: true
+
+# 「年利」は1週間を1年として数える。借りた時刻から interest-period-hours ごとに、残高へ複利で付く。
+interest-rate: 0.10
+interest-period-hours: 168
+
+# 最初に借りた日から返済期限までの日数。追加で借りても延びない。全額返すとリセット。
+due-days: 14
+
+# 返済期限を過ぎている間、所持金が増えたときに返済へ回す割合。/eco での付与は対象外。
+garnish-rate: 0.5
+
+# 借入上限。利息込みの残高がこの額を超える借入はできない。
+# LuckPermsのグループ名ごとに指定し、プレイヤーが入っているグループの最大値を使う。
+limits:
+  default: 1000
+  mclevel_lv1: 3000
+  mclevel_lv2: 10000
+  mclevel_lv3: 30000
+
+# 返済期限を過ぎている間に使えなくするコマンド。先頭の1語、または先頭2語で一致させる。
+blocked-commands:
+  - pay
+  - epay
+  - essentials:pay
+  - essentials:epay
+  - buyclaimblocks
+  - buyclaim
+  - griefprevention:buyclaimblocks
+  - griefprevention:buyclaim
+  - irai create
+  - contractboard:irai create
+
+# 返済期限を過ぎている間に開けなくする購入画面（InventoryHolderのクラス名）。
+# 出品・保管庫など、売る側の画面は入れない。
+blocked-inventory-holders:
+  - dev.spa.adminshop.ShopHolder
+  - dev.spa.adminshop.HeadShopHolder
+  - dev.spa.adminshop.ConfirmHolder
+  - dev.spa.adminshop.HeadConfirmHolder
+  - net.mcauction.auctionhouse.gui.ListingDetailHolder
+  - net.mcauction.auctionhouse.gui.BuyoutConfirmHolder
+  - net.mcirai.contractboard.gui.CreateConfirmHolder
+
+# QuickShopの販売ショップから買う取引を止める。ショップへ売る取引は止めない。
+block-quickshop-purchase: true

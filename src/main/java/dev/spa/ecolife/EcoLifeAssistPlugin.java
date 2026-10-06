@@ -16,6 +16,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     private dev.spa.ecolife.rtp.RtpService rtp;
     private PhoneService phone;
     private dev.spa.ecolife.grave.GraveService graves;
+    private dev.spa.ecolife.loan.LoanService loans;
 
     private BonusConfig bonusConfig;
     private BonusStore store;
@@ -52,7 +53,17 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         generatorStone.register();
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
-        phone = new PhoneService(this);
+        try {
+            loans = new dev.spa.ecolife.loan.LoanService(this);
+            getServer().getPluginManager().registerEvents(loans, this);
+            register("loan", loans, loans);
+        } catch (Exception e) {
+            // 台帳を読めないまま動かすと借金が消えるので、止めて運営が気づけるようにする。
+            getLogger().log(java.util.logging.Level.SEVERE, "借金機能の起動に失敗しました。loan.yml と loans.yml を確認してください。", e);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        phone = new PhoneService(this, loans::summary);
         getServer().getPluginManager().registerEvents(phone, this);
         register("phone", phone, null);
 
@@ -117,6 +128,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     public void onDisable() {
         if (rtp != null) rtp.close();
         if (graves != null) graves.close();
+        if (loans != null) loans.close();
         if (posters != null) posters.close();
         if (invites != null) {
             try { invites.close(); } catch (java.sql.SQLException e) { getLogger().log(java.util.logging.Level.SEVERE, "招待DBを閉じられませんでした", e); }
@@ -172,6 +184,7 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
         reloadConfig();
         if (rtp != null) rtp.reload();
         if (graves != null) graves.reload();
+        if (loans != null) loans.reload();
         if (invites != null) invites.validate();
         this.bonusConfig = BonusConfig.load(this);
         this.calendars = CalendarStore.open(this);

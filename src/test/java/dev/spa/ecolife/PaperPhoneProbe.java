@@ -108,6 +108,16 @@ public final class PaperPhoneProbe extends JavaPlugin {
         user.lastCommand = null;
         actions.get(26).accept(user.player);
         check("invite".equals(user.lastCommand), "invite shortcut on top");
+        check(user.menu.getItem(18).getType() == Material.GOLD_NUGGET, "Spa Loan app");
+        actions.get(18).accept(user.player);
+        check(String.valueOf(user.menu.getItem(4).getItemMeta().lore()).contains("借入上限"), "loan summary in Spa Loan");
+        Map<Integer, Consumer<Player>> loanActions = (Map<Integer, Consumer<Player>>) field(user.menu.getHolder(), "actions");
+        loanActions.get(15).accept(user.player);
+        check("loan repay all".equals(user.lastCommand), "repay all from Spa Loan");
+        user.conversationStarted = false;
+        loanActions.get(11).accept(user.player);
+        check(user.conversationStarted, "Spa Loan amount input");
+        user.conversationStarted = false;
         actions.get(12).accept(user.player);
         check(user.menu.getItem(11).getType() == Material.GOLD_INGOT, "auction in Spazon");
         check(user.menu.getItem(15).getType() == Material.EMERALD, "admin shop in Spazon");

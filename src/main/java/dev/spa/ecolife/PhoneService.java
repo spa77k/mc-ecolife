@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -33,7 +34,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 /** よく使う機能への入口。実際の操作は各プラグインのプレイヤーコマンドに委ねる。 */
 final class PhoneService implements Listener, CommandExecutor {
-    private enum Page { HOME, SPAZON, MORE, TRADE, TRAVEL, TPA_TARGETS, TPAHERE_TARGETS, PLAY, HELP, SET_HOME }
+    private enum Page { HOME, SPAZON, LOAN, MORE, TRADE, TRAVEL, TPA_TARGETS, TPAHERE_TARGETS, PLAY, HELP, SET_HOME }
 
     private static final class PhoneMenu implements InventoryHolder {
         private Inventory inventory;
@@ -46,9 +47,12 @@ final class PhoneService implements Listener, CommandExecutor {
     private final NamespacedKey marker;
     private final NamespacedKey model;
     private final ConversationFactory feedbackFactory;
+    /** Spa Loan の画面に出す、今の借金の要約。 */
+    private final Function<Player, List<String>> loanSummary;
 
-    PhoneService(JavaPlugin plugin) {
+    PhoneService(JavaPlugin plugin, Function<Player, List<String>> loanSummary) {
         this.plugin = plugin;
+        this.loanSummary = loanSummary;
         marker = new NamespacedKey(plugin, "phone");
         model = new NamespacedKey("ecolife", "smartphone");
         feedbackFactory = new ConversationFactory(plugin).withModality(false).withLocalEcho(false)
@@ -155,12 +159,19 @@ final class PhoneService implements Listener, CommandExecutor {
                 page(holder, 12, Material.GOLD_INGOT, "Spazon", "オークションとアドミンショップ", Page.SPAZON);
                 item(holder, 14, Material.PAPER, "Spa Mail", "運営へフィードバックを送る", this::startFeedback);
                 command(holder, 16, Material.FILLED_MAP, "SpaMap", "ロビーに戻る", "lobby");
+                page(holder, 18, Material.GOLD_NUGGET, "Spa Loan", "お金を借りる・返す", Page.LOAN);
                 page(holder, 22, Material.CHEST, "その他の機能", "移動・記録・案内もここから", Page.MORE);
                 command(holder, 26, Material.PLAYER_HEAD, "友達招待", inviteLore(), "invite");
             }
             case SPAZON -> {
                 command(holder, 11, Material.GOLD_INGOT, "オークション", "プレイヤーの出品を見る", "ah");
                 command(holder, 15, Material.EMERALD, "アドミンショップ", "運営ショップを開く", "shop");
+            }
+            case LOAN -> {
+                item(holder, 4, Material.BOOK, "今の借金", loanSummary.apply(player), null);
+                item(holder, 11, Material.GOLD_INGOT, "借りる", "金額をチャットに入力する", borrower -> startLoanInput(borrower, "borrow"));
+                item(holder, 13, Material.EMERALD, "返す", "金額をチャットに入力する", payer -> startLoanInput(payer, "repay"));
+                command(holder, 15, Material.EMERALD_BLOCK, "全額返す", "所持金から返せるだけ返す", "loan repay all");
             }
             case MORE -> {
                 page(holder, 10, Material.EMERALD, "売り買い", "依頼所・ショップ・所持金も見る", Page.TRADE);
@@ -229,7 +240,7 @@ final class PhoneService implements Listener, CommandExecutor {
                 page(holder, 15, Material.BARRIER, "戻る", "登録せず移動画面へ", Page.TRAVEL);
             }
         }
-        if (page == Page.SPAZON || page == Page.MORE)
+        if (page == Page.SPAZON || page == Page.LOAN || page == Page.MORE)
             page(holder, 22, Material.ARROW, "トップへ戻る", "アプリの一覧", Page.HOME);
         else if (page != Page.HOME && page != Page.SET_HOME
                 && page != Page.TPA_TARGETS && page != Page.TPAHERE_TARGETS)
@@ -268,7 +279,7 @@ final class PhoneService implements Listener, CommandExecutor {
 
     private String title(Page page) {
         return switch (page) {
-            case HOME -> "アプリ"; case SPAZON -> "Spazon"; case MORE -> "その他";
+            case HOME -> "アプリ"; case SPAZON -> "Spazon"; case LOAN -> "Spa Loan"; case MORE -> "その他";
             case TRADE -> "売り買い"; case TRAVEL -> "移動";
             case TPA_TARGETS -> "移動先を選ぶ"; case TPAHERE_TARGETS -> "呼ぶ相手を選ぶ";
             case PLAY -> "遊びと記録"; case HELP -> "案内と相談"; case SET_HOME -> "ホーム登録の確認";
@@ -287,10 +298,15 @@ final class PhoneService implements Listener, CommandExecutor {
 
     private void item(PhoneMenu menu, int slot, Material material, String title, String lore,
                       Consumer<Player> action) {
+        item(menu, slot, material, title, List.of(lore), action);
+    }
+
+    private void item(PhoneMenu menu, int slot, Material material, String title, List<String> lore,
+                      Consumer<Player> action) {
         ItemStack stack = new ItemStack(material);
         ItemMeta meta = stack.getItemMeta();
         meta.displayName(Component.text(title, NamedTextColor.AQUA));
-        meta.lore(List.of(Component.text(lore, NamedTextColor.GRAY)));
+        meta.lore(lore.stream().<Component>map(line -> Component.text(line, NamedTextColor.GRAY)).toList());
         stack.setItemMeta(meta);
         menu.inventory.setItem(slot, stack);
         if (action != null) menu.actions.put(slot, action);
@@ -325,6 +341,36 @@ final class PhoneService implements Listener, CommandExecutor {
     private void startFeedback(Player player) {
         player.sendMessage("Spa Mail: 内容をチャットに入力してください。cancel で中止できます。");
         player.beginConversation(feedbackFactory.buildConversation(player));
+    }
+
+    private void startLoanInput(Player player, String action) {
+        player.sendMessage("Spa Loan: 金額をチャットに入力してください。cancel で中止できます。");
+        player.beginConversation(new ConversationFactory(plugin).withModality(false).withLocalEcho(false)
+                .withTimeout(60).withEscapeSequence("cancel").withFirstPrompt(new LoanPrompt(action))
+                .buildConversation(player));
+    }
+
+    private static final class LoanPrompt extends StringPrompt {
+        private final String action;
+
+        LoanPrompt(String action) { this.action = action; }
+
+        @Override public String getPromptText(ConversationContext context) {
+            return action.equals("borrow") ? "借りる金額を入力してください（60秒以内）。"
+                    : "返す金額を入力してください。all で全額（60秒以内）。";
+        }
+
+        @Override public Prompt acceptInput(ConversationContext context, String input) {
+            if (!(context.getForWhom() instanceof Player player)) return Prompt.END_OF_CONVERSATION;
+            String amount = input == null ? "" : input.trim().replace(",", "");
+            if (!amount.matches("\\d{1,9}") && !(action.equals("repay") && amount.equalsIgnoreCase("all"))) {
+                player.sendMessage("金額は数字で入力してください。");
+                return this;
+            }
+            if (!player.performCommand("loan " + action + " " + amount))
+                player.sendMessage("借金は現在利用できません。");
+            return Prompt.END_OF_CONVERSATION;
+        }
     }
 
     private static final class FeedbackPrompt extends StringPrompt {

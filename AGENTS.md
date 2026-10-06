@@ -73,6 +73,13 @@
 - 2026-09-26の指定: 案内所GUIを廃止し、一般プレイヤー向けの入口をスマホに統一する。資源・建築ワールドへの移動もスマホ内で完結させる。
 - 変更時は `mvn -B package` と `python3 scripts/test-phone-paper.py` で検証する。隔離Paperは `target/phone-paper-smoke`、待受は既定で `127.0.0.1:25583`（使用中なら `PHONE_TEST_PORT` で変更）。実クライアント確認と区別する。
 
+## 借金
+
+- 2026-10-06の指定: `/loan`（別名 `/debt`）で借金を実装する。1週間を1年とする年利10%の複利、返済期限14日、期限切れの間は収入の50%を差し押さえ、買い物と送金を止める。借入上限はMcLevelのグループごと（Lv0は1,000S、Lv1は3,000S、Lv2は1万S、Lv3は3万S）。スマホのトップに `Spa Loan` を置く。延滞者の晒し上げはしない。
+- 買い物の禁止は、相手プラグインの購入画面のクラス名（`loan.yml` の `blocked-inventory-holders`）で判定する。AdminShop・AuctionHouse・ContractBoardの画面クラス名を変えたら揃える。
+- 借金の正本は `loans.yml`。読めないときは空で上書きせず、起動を止める。
+- 変更時は `mvn -B package` と `python3 scripts/test-loan-paper.py` を実行する。隔離Paperは `target/loan-paper-smoke`、待受は既定で `127.0.0.1:25588`（`LOAN_TEST_PORT` で変更）。QuickShopの購入禁止と実クライアントでの表示は含まれないので、区別して報告する。詳細は `docs/loan.md`。
+
 ## 自動化装置の検出
 
 - 2026-09-27の指定: ルール「全自動装置は禁止、半自動はOK」の違反候補を、運営専用のDiscord Webhookへ座標つきで通知する。通知だけにし、停止・撤去はしない。

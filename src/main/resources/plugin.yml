@@ -2,9 +2,9 @@ name: EcoLifeAssist
 version: '${project.version}'
 main: dev.spa.ecolife.EcoLifeAssistPlugin
 api-version: "26.2"
-softdepend: [Vault, McLevel, AdminShop, Jobs]
+softdepend: [Vault, McLevel, AdminShop, Jobs, Essentials, QuickShop-Hikari]
 author: spa
-description: ログインボーナス・友達招待・Discord通知・ポスター・スマホ・お墓・自動化装置の検出・石製造機の報酬停止。
+description: ログインボーナス・友達招待・Discord通知・ポスター・スマホ・お墓・借金・自動化装置の検出・石製造機の報酬停止。
 
 commands:
   phone:
@@ -23,6 +23,10 @@ commands:
   invite:
     description: 友達招待と招待実績
     usage: /invite [名前|top|share|code 名前|admin]
+  loan:
+    description: 借金の確認・借入・返済
+    usage: /loan [borrow <額>|repay <額|all>]
+    aliases: [debt]
   daily:
     description: 今月のログインボーナスの進み具合を見る
     usage: /daily
@@ -55,6 +59,12 @@ permissions:
     default: true
   ecolife.grave.admin:
     description: 他人のお墓を取り出す・全員のお墓を一覧する
+    default: op
+  ecolife.loan:
+    description: 借金の確認・借入・返済
+    default: true
+  ecolife.loan.admin:
+    description: 全員の借金一覧と帳消し
     default: op
   ecolife.invite:
     description: 友達招待の登録・GUI・ランキング
