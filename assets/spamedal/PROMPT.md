@@ -1,4 +1,4 @@
-# spaメダルのテクスチャ
+# スパメダルのテクスチャ
 
 `codex exec --enable image_generation`（Codex内蔵image_gen）で生成。`medal-<額面>-source.png`が透過原画（1024×1024）、
 `medal_<額面>.png`がゲーム用の128×128 PNG。`sips -z 128 128`で縮小だけを行い、絵柄とアルファを保持する。
