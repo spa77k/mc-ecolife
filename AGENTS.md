@@ -15,7 +15,7 @@
 
 1. 既存の実装・設定・作業ツリーを確認し、`main` で変更する。
 2. `mvn -B package` でビルド・テストする。招待機能の変更では `python3 scripts/test-invite-paper.py` で隔離Paperの動作も確認する。
-   - 対象は Paper 26.2 / Java 25。
+   - 対象は Paper 26.2・26.3 / Java 25。
    - 隔離テストは `target/invite-paper-smoke`、待受は `127.0.0.1:25579`。
    - テスト用Playerによる検証と実クライアントでの確認を区別し、未確認の項目は報告する。
 3. `git diff --check` と差分を確認し、今回の変更だけをコミットする。ここで止めて報告し、push以降は頼まれたときだけ進める。頼まれたら、GitHubの `main` へpushする。
