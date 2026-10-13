@@ -18,6 +18,11 @@ public final class EcoLifeAssistPlugin extends JavaPlugin {
     private dev.spa.ecolife.grave.GraveService graves;
     private dev.spa.ecolife.loan.LoanService loans;
 
+    /** 他プラグインが画面外の購入操作を判定するための公開API。 */
+    public boolean isLoanOverdue(java.util.UUID playerId) {
+        return loans == null || loans.overdue(playerId);
+    }
+
     private BonusConfig bonusConfig;
     private BonusStore store;
     private CalendarStore calendars;
