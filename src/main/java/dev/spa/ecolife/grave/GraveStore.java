@@ -132,7 +132,11 @@ public final class GraveStore {
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.options().setHeader(List.of("EcoLifeAssist のお墓。中身の正本なので手で編集しない。"));
         for (Map.Entry<String, ConfigurationSection> raw : unreadable.entrySet()) {
-            if (!graves.containsKey(parseId(raw.getKey()))) yaml.set("graves." + raw.getKey(), raw.getValue());
+            if (graves.containsKey(parseId(raw.getKey()))) continue;
+            ConfigurationSection source = raw.getValue();
+            for (String path : source.getKeys(true)) {
+                if (!source.isConfigurationSection(path)) yaml.set("graves." + raw.getKey() + "." + path, source.get(path));
+            }
         }
         for (Grave grave : graves.values()) {
             ConfigurationSection section = yaml.createSection("graves." + grave.id);
