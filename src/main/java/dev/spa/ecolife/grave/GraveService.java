@@ -192,6 +192,11 @@ public final class GraveService implements Listener, CommandExecutor {
     private void open(Player player, UUID id, Entity clicked) {
         GraveStore.Grave grave = store.get(id);
         if (grave == null) {
+            Location at = clicked.getLocation();
+            plugin.getLogger().warning(player.getName() + " が記録のないお墓の目印に触れたため、目印を消しました: "
+                    + at.getWorld().getName() + " (" + at.getBlockX() + ", " + at.getBlockY() + ", " + at.getBlockZ()
+                    + ") id=" + id);
+            player.sendMessage(prefixed("このお墓はすでに取り出し済みか、期限切れです。", NamedTextColor.GRAY));
             clicked.remove();
             return;
         }

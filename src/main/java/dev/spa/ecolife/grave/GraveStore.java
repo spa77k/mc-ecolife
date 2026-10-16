@@ -69,6 +69,8 @@ public final class GraveStore {
     private final JavaPlugin plugin;
     private final File file;
     private final Map<UUID, Grave> graves = new LinkedHashMap<>();
+    /** 読めなかった記録。中身を失わないよう、元のYAMLのまま保存のたびに書き戻す。 */
+    private final Map<String, ConfigurationSection> unreadable = new LinkedHashMap<>();
 
     public GraveStore(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -120,7 +122,8 @@ public final class GraveStore {
                 graves.put(grave.id, grave);
             } catch (RuntimeException e) {
                 // 読めない記録を消すと中身が失われるため、起動は続けてファイルは書き換えない。
-                plugin.getLogger().log(Level.SEVERE, "graves.yml のお墓 " + key + " を読めませんでした。", e);
+                unreadable.put(key, section);
+                plugin.getLogger().log(Level.SEVERE, "graves.yml のお墓 " + key + " を読めませんでした。記録は保存時もそのまま残します。", e);
             }
         }
     }
@@ -128,6 +131,9 @@ public final class GraveStore {
     void save() {
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.options().setHeader(List.of("EcoLifeAssist のお墓。中身の正本なので手で編集しない。"));
+        for (Map.Entry<String, ConfigurationSection> raw : unreadable.entrySet()) {
+            if (!graves.containsKey(parseId(raw.getKey()))) yaml.set("graves." + raw.getKey(), raw.getValue());
+        }
         for (Grave grave : graves.values()) {
             ConfigurationSection section = yaml.createSection("graves." + grave.id);
             section.set("owner", grave.owner.toString());
@@ -152,12 +158,24 @@ public final class GraveStore {
         }
         try {
             plugin.getDataFolder().mkdirs();
+            if (file.exists()) {
+                java.nio.file.Files.copy(file.toPath(), new File(file.getPath() + ".bak").toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
             File temp = new File(file.getPath() + ".tmp");
             yaml.save(temp);
             java.nio.file.Files.move(temp.toPath(), file.toPath(),
                     java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
             plugin.getLogger().log(Level.SEVERE, "graves.yml を保存できませんでした。", e);
+        }
+    }
+
+    private static UUID parseId(String key) {
+        try {
+            return UUID.fromString(key);
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 }
