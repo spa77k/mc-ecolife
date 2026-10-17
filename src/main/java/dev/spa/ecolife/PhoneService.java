@@ -197,7 +197,7 @@ final class PhoneService implements Listener, CommandExecutor {
                 command(holder, 11, Material.ENDER_PEARL, "ランダム移動", "安全な場所へ移動する", "rtp");
                 command(holder, 12, Material.RED_BED, "ホームへ帰る", "登録済みのホームへ移動", "home");
                 page(holder, 13, Material.WHITE_BED, "ホームを登録", "現在地をホームにする（100S）", Page.SET_HOME);
-                world(holder, 14, Material.IRON_PICKAXE, "資源ワールドへ", "資源集めに行く", "resource", null);
+                world(holder, 14, Material.IRON_PICKAXE, "資源サーバーへ", "資源集めに行く", "resource", null);
                 world(holder, 23, Material.DIAMOND_PICKAXE, "資源サーバー2へ", "毎週日曜に作り直し", "resource2", null);
                 help(holder, 15, Material.MAP, "2か所目のホーム", "名前を付けて使う", "/sethome mine、/home mine（mineは好きな名前に変えられます。数字だけの名前は使えません）");
                 page(holder, 16, Material.PLAYER_HEAD, "相手へ移動を申請", "オンラインの相手を選ぶ", Page.TPA_TARGETS);
@@ -205,7 +205,7 @@ final class PhoneService implements Listener, CommandExecutor {
                 command(holder, 18, Material.LIME_WOOL, "移動申請を許可", "届いた申請を受ける", "tpaccept");
                 command(holder, 19, Material.RED_WOOL, "移動申請を拒否", "届いた申請を断る", "tpdeny");
                 command(holder, 20, Material.BARRIER, "自分の申請を取消", "送った申請を取り消す", "tpacancel");
-                world(holder, 21, Material.CRAFTING_TABLE, "建築ワールドへ", "Lv1から入れます", "build", "multiverse.access.build");
+                world(holder, 21, Material.CRAFTING_TABLE, "建築サーバーへ", "Lv1から入れます", "build", "multiverse.access.build");
             }
             case TPA_TARGETS, TPAHERE_TARGETS -> {
                 List<? extends Player> targets = Bukkit.getOnlinePlayers().stream()
@@ -321,7 +321,7 @@ final class PhoneService implements Listener, CommandExecutor {
                        String world, String permission) {
         item(menu, slot, material, title, lore, player -> {
             if (permission != null && !player.hasPermission(permission)) {
-                player.sendMessage("建築ワールドはLv1から入れます。（実プレイ30分＋進捗5個）");
+                player.sendMessage("建築サーバーはLv1から入れます。（実プレイ30分＋進捗5個）");
                 player.sendMessage("進み具合は /level で確認できます。");
                 return;
             }
