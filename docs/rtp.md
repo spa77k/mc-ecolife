@@ -10,4 +10,4 @@ EcoLifeAssist が `/rtp` を提供する。通常プレイヤーの `/rtp` は�
 
 通常プレイヤー権限は `ecolife.rtp`。別ワールド指定は `ecolife.rtp.world`、他のプレイヤーの移動と無料枠のリセットは `ecolife.rtp.admin` で、後二者は運営が既定。`/ecolife reload` で RTP 設定も再読み込みする。
 
-隔離 Paper 検証は `python3 scripts/test-rtp-paper.py`。テスト用 Player アダプタでコマンド、着地点、タイトル呼び出し、初回無料、100S決済、移動失敗時の返金、待機、クールダウン、管理者の代行移動、再起動後の記録、無料枠のリセットを確認する。実クライアントの画面表示や、資源サーバー初回入場の Skript 連携は別途確認する。
+隔離 Paper 検証は `python3 scripts/test-rtp-paper.py`。テスト用 Player アダプタでコマンド、着地点、タイトル呼び出し、初回無料、100S決済、移動失敗時の返金、待機、クールダウン、管理者の代行移動、再起動後の記録、無料枠のリセットを確認する。

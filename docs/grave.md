@@ -26,4 +26,4 @@
 
 ## テスト
 
-`python3 scripts/test-grave-paper.py` が隔離Paper（`target/grave-paper-smoke`、`127.0.0.1:25585`、`GRAVE_TEST_PORT` で変更）で、作成・スロット復元・本人以外の拒否・運営の取り出し・期限切れの落下・保存と読み直し・keepInventory・奈落の置き場所・目印の掃除と作り直しを確かめる。テスト用Playerは本物のプレイヤーではない。実クライアントでの墓石の見た目、統合版でのタップは別途確認が必要。
+`python3 scripts/test-grave-paper.py` が隔離Paper（`target/grave-paper-smoke`、`127.0.0.1:25585`、`GRAVE_TEST_PORT` で変更）で、作成・スロット復元・本人以外の拒否・運営の取り出し・期限切れの落下・保存と読み直し・keepInventory・奈落の置き場所・目印の掃除と作り直しを確かめる。

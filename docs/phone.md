@@ -30,4 +30,4 @@
 
 リリースではJava用zipを既存の `v1.0.0` に添付し、インフラのComposeでURLとSHA-1を固定する。統合版用mcpackとマッピングは `spsmc-infra/plugins/Geyser-Spigot/` にGit管理し、起動時に同期する。リリースやインフラ設定の更新だけでは本番サーバーに反映されない。
 
-`python3 scripts/test-phone-paper.py` は隔離Paperで配布・重複防止・メニュー生成・移動申請のGUI操作を検証する。Java/Bedrock実クライアントでの描画、Geyserのテクスチャ配信、実プレイヤー間の申請は別途実機確認が必要。
+`python3 scripts/test-phone-paper.py` は隔離Paperで配布・重複防止・メニュー生成・移動申請のGUI操作を検証する。
